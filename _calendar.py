@@ -59,7 +59,7 @@ def get_calendar(ctx, section) -> discord.Embed:
             month_start = regex.search(r"\([^ -]*", period).group()[1:]
             month_end = regex.search(r"- (.*)[A-Za-z]", period).group()[2:]
             term_year = regex.search(r"(\d+)(?!.*\d)", period).group()
-            if term_year == str(year):
+            if term_year == str(year) and current_term == {}:
                 start_index = months[month_start[:3]]
                 end_index = months[month_end[:3]]
                 current_index = months[month_current[:3]]
@@ -68,7 +68,7 @@ def get_calendar(ctx, section) -> discord.Embed:
                     current_term = term
                 elif current_term != {} and current_index >= end_index:
                     next_term = term
-            elif term_year == str(next_year):
+            elif term_year == str(next_year) or term_year == str(year):
                 next_session = session
                 if next_term == {}:
                     next_term = term
@@ -76,15 +76,20 @@ def get_calendar(ctx, section) -> discord.Embed:
     student_calendar = {
         "current": (current_term, ok_calendar[current_session][current_term]),
         "currentterm": (current_term, ok_calendar[current_session][current_term]),
-        "currentsession": (current_session, ok_calendar[current_session]),
-        "nextsession": (next_session, ok_calendar[next_session]),
+        "currentsession": (current_session, ok_calendar[current_session])
     }
+    if next_session != {}:
+        student_calendar["nextsession"] = (next_session, ok_calendar[next_session])
     if next_term in ok_calendar[current_session].keys():
         student_calendar["next"] = (next_term, ok_calendar[current_session][next_term])
         student_calendar["nextterm"] = (next_term, ok_calendar[current_session][next_term])
     else:
-        student_calendar["next"] = (next_term, ok_calendar[next_session][next_term])
-        student_calendar["nextterm"] = (next_term, ok_calendar[next_session][next_term])
+        if "nextsession" in student_calendar.keys():
+            student_calendar["next"] = (next_term, ok_calendar[next_session][next_term])
+            student_calendar["nextterm"] = (next_term, ok_calendar[next_session][next_term])
+        else:
+            student_calendar["next"] = "No Info"
+            student_calendar["nextterm"] = "No Info"
     if "Midterm Break" in ok_calendar[current_session][current_term]:
         break_period = ok_calendar[current_session][current_term]["Midterm Break"]
         first_day = int(regex.search(r"[0-9]+ -", break_period).group()[:-2])
@@ -109,7 +114,13 @@ def get_calendar(ctx, section) -> discord.Embed:
     student_calendar["exams"] = ("Final Exams", f"{exam_start} to {exam_end}")
     student_calendar["finals"] = ("Final Exams", f"{exam_start} to {exam_end}")
     embed = discord.Embed(title=INPUTS[section], color=discord.Color.purple())
-    name = student_calendar[section][0]
+    try:
+        name = student_calendar[section][0]
+    except KeyError:
+        embed.description = "**No Information Found** \n\n" \
+                            "Full Academic Calendar Here: \n " \
+                            "https://www.calendar.ubc.ca/okanagan/pdf/UBC_Okanagan_Calendar_Dates_and_Deadlines.pdf "
+        return embed
     if section in ["currentsession", "nextsession"]:
         embed.description = f"**{name}**"
         for term_key in student_calendar[section][1].keys():

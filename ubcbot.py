@@ -1,4 +1,5 @@
 #!/usr/local/bin/python3.9
+import traceback
 
 import _reference
 import _menu
@@ -102,7 +103,7 @@ async def runtime_error(ctx, error):
         guild_name = guild.name
         channel_name = ctx.channel.name
     embed_error = discord.Embed(title=f"Error in {guild_name} in #{channel_name}",
-                                description=f"```\n{error}\n```")
+                                description=f"```\n{traceback.format_exc()}\n```")
     me = client.get_user(430678754931507201)
     if me is None:
         me = await client.fetch_user(430678754931507201)
