@@ -6,8 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="3bceb23d-6092-4bff-8488-ffce8f00a19d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/_calendar.py" beforeDir="false" afterPath="$PROJECT_DIR$/_calendar.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ubcbot.py" beforeDir="false" afterPath="$PROJECT_DIR$/ubcbot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/_menu.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +113,8 @@
       <workItem from="1641140537341" duration="384000" />
       <workItem from="1641415145147" duration="1069000" />
       <workItem from="1641416348568" duration="692000" />
-      <workItem from="1641741108903" duration="3633000" />
+      <workItem from="1641741108903" duration="4483000" />
+      <workItem from="1642015337896" duration="2774000" />
     </task>
     <servers />
   </component>
@@ -134,6 +134,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/UBCBot$ubcbot.coverage" NAME="ubcbot Coverage Results" MODIFIED="1641745827509" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/UBCBot$ubcbot.coverage" NAME="ubcbot Coverage Results" MODIFIED="1642018075421" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
