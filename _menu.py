@@ -236,9 +236,9 @@ def get_weekly_menu(today) -> dict:
     current_menu_file = f"./cache/{monday.year}_{monday.month}_Pritchard-Menu-" \
                         f"{months[monday.month]}.-{monday.day}-"
     if sunday.month == monday.month:
-        end_url = f"{sunday.day}.pdf"
+        end_url = f"{sunday.day}-{sunday.year}.pdf"
     else:
-        end_url = f"{months[sunday.month]}.-{sunday.day}.pdf"
+        end_url = f"{months[sunday.month]}.-{sunday.day}-{sunday.year}.pdf"
     url += end_url
     current_menu_file += end_url
     weekly_menu = {}
