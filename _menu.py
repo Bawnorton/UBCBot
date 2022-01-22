@@ -33,7 +33,7 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
     display = ""
     dm_embed = None
     if selected_input == "today":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n*{}*\n- {}" \
             .format(INPUTS["chefbr"],
                     "\n- ".join(weekly_menu["chefbr"][DAY_NUMS[today.weekday()]]),
                     INPUTS["chef"],
@@ -43,6 +43,7 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
                     INPUTS["grill"],
                     "\n- ".join(weekly_menu["grill"][DAY_NUMS[today.weekday()]]),
                     INPUTS["nourish"],
+                    "".join(weekly_menu["nourish_message"]),
                     "\n- ".join(weekly_menu["nourish"][DAY_NUMS[today.weekday()]]))
     elif selected_input == "daily":
         display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
@@ -117,8 +118,9 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
                     "Sunday",
                     "\n- ".join(weekly_menu["grill"]["sunday"]))
     elif selected_input == "nourish":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
+        display = "*{}*\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+            .format("".join(weekly_menu["nourish_message"]),
+                    "Monday",
                     "\n- ".join(weekly_menu["nourish"]["monday"]),
                     "Tuesday",
                     "\n- ".join(weekly_menu["nourish"]["tuesday"]),
@@ -151,7 +153,7 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
                     "\n- ".join(weekly_menu["grill"]["saturday"]),
                     "Sunday",
                     "\n- ".join(weekly_menu["grill"]["sunday"]))
-        pizzapasta = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}"\
+        pizzapasta = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
             .format("Monday",
                     "\n- ".join(weekly_menu["pizza&pasta"]["monday"]),
                     "Tuesday",
@@ -196,8 +198,10 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
                     "\n- ".join(weekly_menu["chefbr"]["saturday"]),
                     "Sunday",
                     "\n- ".join(weekly_menu["chefbr"]["sunday"]))
-        nourish = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
+        nourish = "*{}*\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- " \
+                  "{}" \
+            .format("".join(weekly_menu["nourish_message"]),
+                    "Monday",
                     "\n- ".join(weekly_menu["nourish"]["monday"]),
                     "Tuesday",
                     "\n- ".join(weekly_menu["nourish"]["tuesday"]),
@@ -284,6 +288,7 @@ def get_weekly_menu(today) -> dict:
         elif line.lower() == "nourish lunch":
             result = get_day_dishes(i, lines, "AVAILABLE EVERY DAY: ALL DAY")
             weekly_menu["nourish"] = result[0]
+            weekly_menu["nourish_message"] = "E" + weekly_menu["nourish"]["friday"].pop()
             i += result[1]
         elif "every day" in line.lower():
             weekly_menu["daily"] = get_daily_dishes(i, lines)
