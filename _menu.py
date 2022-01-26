@@ -1,4 +1,7 @@
 import datetime
+
+from docx2pdf import convert
+import subprocess
 import discord
 import textract
 import re as regex
@@ -231,28 +234,44 @@ def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]
     return display, dm_embed
 
 
+def convert_to_pdf(path):
+    convert(path, path[:-5] + ".pdf", True)
+    os.system("killall \"Microsoft Word\"")
+    return path[:-5] + ".pdf"
+
+
 def get_weekly_menu(today) -> dict:
     monday = (today - datetime.timedelta(days=today.weekday()))
     sunday = monday + datetime.timedelta(days=6)
     months = _reference.MONTHS
-    url = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-" \
-          f"{months[monday.month].upper()}-{monday.day}-"
-    current_menu_file = f"./cache/{monday.year}_{monday.month}_Pritchard-Menu-" \
-                        f"{months[monday.month]}.-{monday.day}-"
-    if sunday.month == monday.month:
-        end_url = f"{sunday.day}-{sunday.year}.pdf"
-    else:
-        end_url = f"{months[sunday.month]}.-{sunday.day}-{sunday.year}.pdf"
-    url += end_url
-    current_menu_file += end_url
+    attempts = []
+    url = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{sunday.day}-{sunday.year}.pdf"
+    url2 = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{months[sunday.month]}.-{sunday.day}-{sunday.year}.pdf"
+    url3 = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{sunday.day}.docx"
+    current_menu_file = f"./cache/{monday.year}_{monday.month}_Pritchard-Menu-{months[monday.month]}.-{monday.day}-{sunday.day}-{sunday.year}.pdf"
+    attempts.append(url)
+    attempts.append(url2)
+    attempts.append(url3)
     weekly_menu = {}
+    url_used = None
     if not os.path.isfile(current_menu_file):
-        response = requests.get(url, stream=True)
+        response = None
+        for attempt in attempts:
+            response = requests.get(attempt, stream=True)
+            if response.status_code == 200:
+                url_used = attempt
+                break
         if response.status_code == 404:
             weekly_menu["error"] = 404
         elif response.status_code == 200:
-            with open(current_menu_file, 'wb') as f:
-                f.write(response.content)
+            if url_used == url3:
+                current_menu_file = current_menu_file[:-4] + ".docx"
+                with open(current_menu_file, 'wb') as f:
+                    f.write(response.content)
+                current_menu_file = convert_to_pdf(current_menu_file)
+            else:
+                with open(current_menu_file, 'wb') as f:
+                    f.write(response.content)
     if "error" in weekly_menu.keys():
         file_list = glob.glob("./cache/*")
         current_menu_file = max(file_list, key=os.path.getctime)

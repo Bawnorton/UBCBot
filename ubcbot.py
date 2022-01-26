@@ -40,6 +40,13 @@ async def help(ctx):
 # <!-- menu --!>
 @client.command()
 async def menu(ctx, args=None):
+    # embed = discord.Embed(title="Menu",
+    #                       color=discord.colour.Colour.blue(),
+    #                       description="Unfortunatley Pritchard thought it would be a good idea to change "
+    #                                   "their menu format **AGAIN** so I have to re-write the code that gets it. \n"
+    #                                   "Anyway, here's the menu for this week:\n "
+    #                                   "https://food.ok.ubc.ca/wp-content/uploads/2022/01/Pritchard-Menu-JAN-24-30.docx")
+    # await ctx.send(embed=embed)
     value = _reference.validate_input(args, _menu.INPUTS)
     if value[1] is not None:
         await ctx.channel.send(embed=value[1])
