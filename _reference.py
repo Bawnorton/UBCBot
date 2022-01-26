@@ -50,7 +50,7 @@ def validate_input(args, inputs) -> tuple[str, discord.Embed]:
     return selected_input, embed
 
 
-def save_file(settings, name):
+def save_file(name, settings):
     with open('{}.json'.format(name), 'w') as f:
         json.dump(settings, f, indent=4)
 

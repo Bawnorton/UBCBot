@@ -1,11 +1,10 @@
 import datetime
+from datetime import datetime as dt
 
-from docx2pdf import convert
-import subprocess
+from docx import Document
+from bs4 import BeautifulSoup
 import discord
 import textract
-import re as regex
-import glob
 import os.path
 import requests
 
@@ -21,347 +20,228 @@ INPUTS = {
     "nourish": "Nourish (Lunch)",
     "full": "Full Menu"
 }
-DAY_NUMS = {
-    0: "monday",
-    1: "tuesday",
-    2: "wednesday",
-    3: "thursday",
-    4: "friday",
-    5: "saturday",
-    6: "sunday"
-}
 
 
-def get_display(weekly_menu, selected_input, today) -> tuple[str, discord.Embed]:
-    display = ""
-    dm_embed = None
-    if selected_input == "today":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n*{}*\n- {}" \
-            .format(INPUTS["chefbr"],
-                    "\n- ".join(weekly_menu["chefbr"][DAY_NUMS[today.weekday()]]),
-                    INPUTS["chef"],
-                    "\n- ".join(weekly_menu["chef"][DAY_NUMS[today.weekday()]]),
-                    INPUTS["pizza&pasta"],
-                    "\n- ".join(weekly_menu["pizza&pasta"][DAY_NUMS[today.weekday()]]),
-                    INPUTS["grill"],
-                    "\n- ".join(weekly_menu["grill"][DAY_NUMS[today.weekday()]]),
-                    INPUTS["nourish"],
-                    "".join(weekly_menu["nourish_message"]),
-                    "\n- ".join(weekly_menu["nourish"][DAY_NUMS[today.weekday()]]))
-    elif selected_input == "daily":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("All Day",
-                    "\n- ".join(weekly_menu["daily"]["all day"]),
-                    "Breakfast",
-                    "\n- ".join(weekly_menu["daily"]["breakfast"]),
-                    "Lunch and Dinner",
-                    "\n- ".join(weekly_menu["daily"]["lunch and dinner"]))
-    elif selected_input == "chef":
+def get_pritchard_menu_file() -> str:
+    p_website = "https://food.ok.ubc.ca/places/pritchard/"
+    p_response = requests.get(p_website)
+    p_soup = BeautifulSoup(p_response.text, 'html.parser')
+
+    p_menu_url: str = ""
+    for url in p_soup.find_all('a'):
+        link = url.get('href')
+        if isinstance(link, str):
+            if "Pritchard-Menu" in link:
+                p_menu_url = link
+                break
+
+    if p_menu_url == "":
+        raise ResourceWarning("Cannot Find Menu")
+
+    p_menu_cache_file = f"./cache/{p_menu_url.replace('/', '-').replace('https:--food.ok.ubc.ca-wp-content-uploads-', '')}"
+    if not os.path.isfile(p_menu_cache_file):
+        p_menu = requests.get(p_menu_url)
+        with open(p_menu_cache_file, 'wb') as file:
+            file.write(p_menu.content)
+    return p_menu_cache_file
+
+
+def get_menu_as_list():
+    file_path = get_pritchard_menu_file()
+    file_type = file_path.rpartition('.')[-1]
+    lines: list[str] = []
+
+    if "pdf" in file_type:
+        pdf = str(textract.process(file_path)) \
+            .replace("\\xe2\\x80\\x99", "\'").replace("\\x0c", "").replace("- ", "").replace("-", "").replace("b'", '')
+        lines = pdf.split("\\n")
+    elif "docx" in file_type:
+        document = Document(file_path)
+        docx_paragraphs = []
+        for paragraph in document.paragraphs:
+            docx_paragraphs.append(paragraph.text)
+        docx_text = "\n".join(docx_paragraphs).replace("-", "")
+        lines = docx_text.split("\n")
+
+    while "" in lines:
+        lines.remove("")
+
+    return lines
+
+
+def generate_menu_json():
+    today = datetime.date.today()
+    create_new_menu: bool = False
+    json_content = _reference.get_file("menu_store")
+
+    if "day_created" in json_content:
+        day_created_str = json_content["day_created"]
+        day_created = dt.fromisoformat(day_created_str)
+        if not (day_created.isocalendar()[1] == today.isocalendar()[1] and day_created.year == today.year):  # not same week
+            create_new_menu = True
+    else:
+        create_new_menu = True
+
+    if not create_new_menu:
+        return json_content
+
+    menu_list = get_menu_as_list()
+
+    current_position: int = -1
+    current_day: int = -1
+
+    positions: dict[str, int] = {
+        "CHEF’S TABLE DINNER": 0,
+        "PIZZA & PASTA LUNCH/DINNER": 1,
+        "GRILL LUNCH/DINNER": 2,
+        "CHEF’S TABLE BREAKFAST": 3,
+        "NOURISH LUNCH": 4,
+        "AVAILABLE EVERY DAY: ALL DAY": 5
+    }
+
+    days: dict[str, int] = {
+        "MONDAY": 0,
+        "TUESDAY": 1,
+        "WEDNESDAY": 2,
+        "THURSDAY": 3,
+        "FRIDAY": 4,
+        "SATURDAY": 5,
+        "SUNDAY": 6,
+        "AVAILABLE EVERY DAY: ALL Day": 7,
+        "AVAILABLE EVERY DAY: BREAKFAST": 8,
+        "AVAILABLE EVERY DAY: LUNCH AND DINNER": 9
+    }
+
+    for line in menu_list:
+        changed_day = False
+        for position in positions:
+            if position == line.upper():
+                current_position = positions[position]
+                if current_position != 5:  # include Daily Menu
+                    current_day = -1
+                else:
+                    current_day = 7
+                    changed_day = True
+        for day in days:
+            if day == line.upper():
+                current_day = days[day]
+                changed_day = True
+
+        if changed_day:  # don't include day, eg: MONDAY
+            continue
+
+        if current_position == -1 or current_day == -1:  # don't include junk info
+            continue
+
+        if current_position not in json_content:  # make sure there is somewhere for data to go
+            json_content[current_position] = {}
+
+        if current_day not in json_content[current_position]:
+            json_content[current_position][current_day] = []
+
+        if current_position == 4 and current_day == 4:  # don't include nourish hint in FRIDAY menu
+            if "*each bowl" in line.lower():
+                json_content[current_position]["nourish_message"] = line
+                continue
+
+        if current_position == 5:  # don't include daily message junk
+            if "*madewithout" in line.lower():
+                continue
+
+        json_content[current_position][current_day].append(line)
+
+    json_content["day_created"] = today.isoformat()
+    _reference.save_file("menu_store", json_content)
+    return json_content
+
+
+def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
+    today = datetime.date.today()
+    choices = {
+        "chef": 0,
+        "pizza&pasta": 1,
+        "grill": 2,
+        "chefbr": 3,
+        "nourish": 4,
+        "daily": 5,
+        "today": 6,
+        "full": 7
+    }
+    choice = choices[selected_input]
+    display, dm_embed = None, None
+    if choice <= 3:
         display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["chef"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["chef"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["chef"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["chef"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["chef"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["chef"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["chef"]["sunday"]))
-    elif selected_input == "chefbr":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["chefbr"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["chefbr"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["chefbr"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["chefbr"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["chefbr"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["chefbr"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["chefbr"]["sunday"]))
-    elif selected_input == "pizza&pasta":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["sunday"]))
-    elif selected_input == "grill":
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["grill"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["grill"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["grill"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["grill"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["grill"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["grill"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["grill"]["sunday"]))
-    elif selected_input == "nourish":
+            .format("Monday", "\n- ".join(menu[str(choice)]['0']),
+                    "Tuesday", "\n- ".join(menu[str(choice)]['1']),
+                    "Wednesday", "\n- ".join(menu[str(choice)]['2']),
+                    "Thursday", "\n- ".join(menu[str(choice)]['3']),
+                    "Friday", "\n- ".join(menu[str(choice)]['4']),
+                    "Saturday", "\n- ".join(menu[str(choice)]['5']),
+                    "Sunday", "\n- ".join(menu[str(choice)]['6']))
+    elif choice == 4:
         display = "*{}*\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("".join(weekly_menu["nourish_message"]),
-                    "Monday",
-                    "\n- ".join(weekly_menu["nourish"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["nourish"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["nourish"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["nourish"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["nourish"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["nourish"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["nourish"]["sunday"]))
-    elif selected_input == "full":
+            .format("".join(menu['4']["nourish_message"]),
+                    "Monday", "\n- ".join(menu['4']['0']),
+                    "Tuesday", "\n- ".join(menu['4']['1']),
+                    "Wednesday", "\n- ".join(menu['4']['2']),
+                    "Thursday", "\n- ".join(menu['4']['3']),
+                    "Friday", "\n- ".join(menu['4']['4']),
+                    "Saturday", "\n- ".join(["Not Open on Saturday"]),
+                    "Sunday", "\n- ".join(["Not Open on Sunday"]))
+    elif choice == 5:
+        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+            .format("All Day", "\n- ".join(menu['5']['7']),
+                    "Breakfast", "\n- ".join(menu['5']['8']),
+                    "Lunch and Dinner", "\n- ".join(menu['5']['9']))
+    elif choice == 6:
+        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n{}\n- {}" \
+            .format(INPUTS["chefbr"],
+                    "\n- ".join(menu['3'][str(today.weekday())]),
+                    INPUTS["chef"],
+                    "\n- ".join(menu['0'][str(today.weekday())]),
+                    INPUTS["pizza&pasta"],
+                    "\n- ".join(menu['1'][str(today.weekday())]),
+                    INPUTS["grill"],
+                    "\n- ".join(menu['2'][str(today.weekday())]),
+                    INPUTS["nourish"],
+                    "".join(menu['4']["nourish_message"]),
+                    "\n- ".join(menu['4'][str(today.weekday())]))
+    elif choice == 7:
         display = "Full Menu sent in direct messages"
         dm_embed = discord.Embed(title=INPUTS[selected_input],
                                  color=discord.colour.Colour.blue())
-        grill = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["grill"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["grill"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["grill"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["grill"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["grill"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["grill"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["grill"]["sunday"]))
-        pizzapasta = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["pizza&pasta"]["sunday"]))
-        chef = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["chef"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["chef"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["chef"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["chef"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["chef"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["chef"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["chef"]["sunday"]))
-        chefbr = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday",
-                    "\n- ".join(weekly_menu["chefbr"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["chefbr"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["chefbr"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["chefbr"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["chefbr"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["chefbr"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["chefbr"]["sunday"]))
-        nourish = "*{}*\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- " \
-                  "{}" \
-            .format("".join(weekly_menu["nourish_message"]),
-                    "Monday",
-                    "\n- ".join(weekly_menu["nourish"]["monday"]),
-                    "Tuesday",
-                    "\n- ".join(weekly_menu["nourish"]["tuesday"]),
-                    "Wednesday",
-                    "\n- ".join(weekly_menu["nourish"]["wednesday"]),
-                    "Thursday",
-                    "\n- ".join(weekly_menu["nourish"]["thursday"]),
-                    "Friday",
-                    "\n- ".join(weekly_menu["nourish"]["friday"]),
-                    "Saturday",
-                    "\n- ".join(weekly_menu["nourish"]["saturday"]),
-                    "Sunday",
-                    "\n- ".join(weekly_menu["nourish"]["sunday"]))
+        format_menus = []
+        for i in range(0, 4):
+            format_menus.append("**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}"
+                                .format("Monday", "\n- ".join(menu[str(i)]['0']),
+                                        "Tuesday", "\n- ".join(menu[str(i)]['1']),
+                                        "Wednesday", "\n- ".join(menu[str(i)]['2']),
+                                        "Thursday", "\n- ".join(menu[str(i)]['3']),
+                                        "Friday", "\n- ".join(menu[str(i)]['4']),
+                                        "Saturday", "\n- ".join(menu[str(i)]['5']),
+                                        "Sunday", "\n- ".join(menu[str(i)]['6'])))
+        nourish = "{}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+            .format("".join(menu['4']["nourish_message"]),
+                    "Monday", "\n- ".join(menu['4']['0']),
+                    "Tuesday", "\n- ".join(menu['4']['1']),
+                    "Wednesday", "\n- ".join(menu['4']['2']),
+                    "Thursday", "\n- ".join(menu['4']['3']),
+                    "Friday", "\n- ".join(menu['4']['4']),
+                    "Saturday", "\n- ".join(["Not Open Today"]),
+                    "Sunday", "\n- ".join(["Not Open Today"]))
         daily = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("All Day",
-                    "\n- ".join(weekly_menu["daily"]["all day"]),
-                    "Breakfast",
-                    "\n- ".join(weekly_menu["daily"]["breakfast"]),
-                    "Lunch and Dinner",
-                    "\n- ".join(weekly_menu["daily"]["lunch and dinner"]))
-        dm_embed.add_field(name="> **Chef's Table Breakfast**", value=chefbr, inline=False)
-        dm_embed.add_field(name="> **Chef's Table Dinner**", value=chef, inline=False)
-        dm_embed.add_field(name="> **Pizza and Pasta (Lunch / Dinner)**", value=pizzapasta, inline=False)
-        dm_embed.add_field(name="> **The Grill (Lunch / Dinner)**", value=grill, inline=False)
+            .format("All Day", "\n- ".join(menu['5']['7']),
+                    "Breakfast", "\n- ".join(menu['5']['8']),
+                    "Lunch and Dinner", "\n- ".join(menu['5']['9']))
+        dm_embed.add_field(name="> **Chef's Table Breakfast**", value=format_menus[3], inline=False)
+        dm_embed.add_field(name="> **Chef's Table Dinner**", value=format_menus[0], inline=False)
+        dm_embed.add_field(name="> **Pizza and Pasta (Lunch / Dinner)**", value=format_menus[1], inline=False)
+        dm_embed.add_field(name="> **The Grill (Lunch / Dinner)**", value=format_menus[2], inline=False)
         dm_embed.add_field(name="> **Nourish (Lunch)**", value=nourish, inline=False)
         dm_embed.add_field(name="> **Every day**", value=daily, inline=False)
     return display, dm_embed
 
 
-def convert_to_pdf(path):
-    convert(path, path[:-5] + ".pdf", True)
-    os.system("killall \"Microsoft Word\"")
-    return path[:-5] + ".pdf"
-
-
-def get_weekly_menu(today) -> dict:
-    monday = (today - datetime.timedelta(days=today.weekday()))
-    sunday = monday + datetime.timedelta(days=6)
-    months = _reference.MONTHS
-    attempts = []
-    url = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{sunday.day}-{sunday.year}.pdf"
-    url2 = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{months[sunday.month]}.-{sunday.day}-{sunday.year}.pdf"
-    url3 = f"https://food.ok.ubc.ca/wp-content/uploads/{monday.year}/{monday.month:02d}/Pritchard-Menu-{months[monday.month].upper()}-{monday.day}-{sunday.day}.docx"
-    current_menu_file = f"./cache/{monday.year}_{monday.month}_Pritchard-Menu-{months[monday.month]}.-{monday.day}-{sunday.day}-{sunday.year}.pdf"
-    attempts.append(url)
-    attempts.append(url2)
-    attempts.append(url3)
-    weekly_menu = {}
-    url_used = None
-    if not os.path.isfile(current_menu_file):
-        response = None
-        for attempt in attempts:
-            response = requests.get(attempt, stream=True)
-            if response.status_code == 200:
-                url_used = attempt
-                break
-        if response.status_code == 404:
-            weekly_menu["error"] = 404
-        elif response.status_code == 200:
-            if url_used == url3:
-                current_menu_file = current_menu_file[:-4] + ".docx"
-                with open(current_menu_file, 'wb') as f:
-                    f.write(response.content)
-                current_menu_file = convert_to_pdf(current_menu_file)
-            else:
-                with open(current_menu_file, 'wb') as f:
-                    f.write(response.content)
-    if "error" in weekly_menu.keys():
-        file_list = glob.glob("./cache/*")
-        current_menu_file = max(file_list, key=os.path.getctime)
-    pdf_text = str(textract.process(current_menu_file))
-    text = regex.sub(r'[^A-Za-z \\():]', '', pdf_text) \
-        .replace("\\xe\\x\\x", "\'") \
-        .replace("\\xc", "") \
-        .replace("\\no Add", " with optional") \
-        .replace("madewithoutgluten", "made without gluten") \
-        .replace("plantbased", "plant based") \
-        .replace("Applebraised", "Apple braised") \
-        .replace("Appleglazed", "Apple glazed")
-    lines = text.split("\\n")
-    lines.append("END")
-    for i in range(len(lines)):
-        line = lines[i]
-        if line.lower() == "chef's table dinner":
-            result = get_day_dishes(i, lines, "PIZZA  PASTA LUNCHDINNER")
-            weekly_menu["chef"] = result[0]
-            i += result[1]
-        if line.lower() == "chef's table breakfast":
-            result = get_day_dishes(i, lines, "NOURISH LUNCH")
-            weekly_menu["chefbr"] = result[0]
-            i += result[1]
-        elif line.lower() == "pizza  pasta lunchdinner":
-            result = get_day_dishes(i, lines, "GRILL LUNCHDINNER")
-            weekly_menu["pizza&pasta"] = result[0]
-            i += result[1]
-        elif line.lower() == "grill lunchdinner":
-            result = get_day_dishes(i, lines, "CHEF'S TABLE BREAKFAST")
-            weekly_menu["grill"] = result[0]
-            i += result[1]
-        elif line.lower() == "nourish lunch":
-            result = get_day_dishes(i, lines, "AVAILABLE EVERY DAY: ALL DAY")
-            weekly_menu["nourish"] = result[0]
-            weekly_menu["nourish_message"] = "E" + weekly_menu["nourish"]["friday"].pop()
-            i += result[1]
-        elif "every day" in line.lower():
-            weekly_menu["daily"] = get_daily_dishes(i, lines)
-            break
-    return weekly_menu
-
-
-def get_daily_dishes(index, lines) -> dict:
-    line = lines[index]
-    daily_dishes = {"breakfast": [], "lunch and dinner": [], "all day": []}
-    selected = ""
-    while line != "END":
-        if "all day" in line.lower():
-            selected = "all day"
-            changed = True
-        elif "breakfast" in line.lower():
-            selected = "breakfast"
-            changed = True
-        elif "lunch and dinner" in line.lower():
-            selected = "lunch and dinner"
-            changed = True
-        else:
-            changed = False
-        if line != "" and not changed:
-            if "made without gluten" not in line:
-                daily_dishes[selected].append(lines[index])
-        index += 1
-        line = lines[index]
-    return daily_dishes
-
-
-def get_day_dishes(index, lines, end) -> tuple[dict, int]:
-    line = lines[index]
-    day_dishes = {"monday": [], "tuesday": [], "wednesday": [], "thursday": [], "friday": [], "saturday": [],
-                  "sunday": []}
-    current_day = ""
-    skip_count = 0
-    days = list(DAY_NUMS.values())
-    while line != end:
-        if line.lower() in days:
-            try:
-                day_index = days.index(current_day)
-            except ValueError:
-                day_index = -1
-            current_day = days[day_index + 1]
-        elif current_day != "":
-            day_dishes[current_day].append(line[1:])
-        index += 1
-        skip_count += 1
-        line = lines[index]
-    if not day_dishes.get('saturday'):
-        day_dishes.get('friday').pop()
-        day_dishes['saturday'] = ["Not Open"]
-        day_dishes['sunday'] = ["Not Open"]
-    else:
-        day_dishes.get('sunday').pop()
-    return day_dishes, skip_count
+def get_weekly_menu() -> dict:
+    menu = generate_menu_json()
+    return menu
