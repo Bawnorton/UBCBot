@@ -6,8 +6,10 @@ import datetime
 import _reference
 import _menu
 
-
 current_editor = ""
+menu_message_channel = None
+innacurate_button_view: None | View = None
+menu_message: None | discord.Message = None
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
 json_menu: dict = {}
@@ -46,6 +48,7 @@ async def cancel_button_callback(interaction: discord.Interaction):
 async def save_button_callback(interaction: discord.Interaction):
     global option_message
     global current_editor
+    global menu_message
     history: dict = _reference.get_file("history")
     user: discord.User = interaction.user
     added = []
@@ -72,6 +75,8 @@ async def save_button_callback(interaction: discord.Interaction):
     if option_message is not None:
         await option_message.delete()
     await config_message.delete()
+    embed = await _reference.get_message(menu_message_channel, None)
+    menu_message = await menu_message.edit(embed=embed, view=innacurate_button_view)
     option_message = None
     current_editor = ""
 

@@ -1,6 +1,7 @@
 from discord.ext import commands
 import discord
 import json
+import _menu
 
 intents = discord.Intents.all()
 client = commands.Bot(command_prefix='.', intents=intents)
@@ -26,6 +27,29 @@ MONTHS = {
     11: "Nov",
     12: "Dec"
 }
+
+
+async def get_message(ctx, selected_input) -> discord.Embed:
+    if selected_input is None:
+        selected_input = "today"
+    weekly_menu = _menu.get_weekly_menu()
+    embed = discord.Embed(title=_menu.INPUTS[selected_input],
+                          color=discord.colour.Colour.blue())
+    result = _menu.get_display(weekly_menu, selected_input)
+    display = result[0]
+    if result[1] is not None:
+        dm_embed = result[1]
+        user = client.get_user(ctx.author.id)
+        if user is None:
+            user = await client.fetch_user(ctx.author.id)
+        channel = user.dm_channel
+        if channel is None:
+            channel = await user.create_dm()
+        await channel.send(embed=dm_embed)
+    embed.description = display
+    if "error" in weekly_menu.keys():
+        embed.set_footer(text="Last Week's Menu - Pritchard Hasn't Updated Their Menu Yet")
+    return embed
 
 
 def validate_input(args, inputs) -> tuple[str, discord.Embed]:
