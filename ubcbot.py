@@ -1,12 +1,13 @@
 #!/Users/benjamin/.pyenv/shims/python
+import asyncio
 import traceback
+from threading import Thread
 
 import _reference
 import _menu
 import _calendar
 import _config
 import discord
-from _menu import get_display, get_weekly_menu
 from _calendar import get_calendar
 from _reference import client, TOKEN_MEE6
 
@@ -38,6 +39,24 @@ async def help(ctx):
 
 
 # <!-- menu --!>
+async def keep_button_alive():  # janky workaround for button randomly not working
+    counter = 0
+    while True:
+        counter += 1
+        await asyncio.sleep(1)
+        if counter == 60:
+            counter = 0
+            _config.inaccurate_button_view = discord.ui.View()
+            _config.config_button = discord.ui.Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
+            _config.config_button.callback = _config.config_button_callback
+            _config.inaccurate_button_view.add_item(_config.config_button)
+            await _config.menu_message.edit(view=_config.inaccurate_button_view)
+
+
+def between_callback(loop):
+    loop.create_task(keep_button_alive())
+
+
 @client.command()
 async def menu(ctx, args=None):
     value = _reference.validate_input(args, _menu.INPUTS)
@@ -47,12 +66,15 @@ async def menu(ctx, args=None):
     selected_input = value[0]
     embed = await _reference.get_message(ctx, selected_input)
     if selected_input is None:
-        _config.innacurate_button_view = discord.ui.View()
-        config_button = discord.ui.Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
-        config_button.callback = _config.config_button_callback
-        _config.innacurate_button_view.add_item(config_button)
+        _config.inaccurate_button_view = discord.ui.View()
+        _config.config_button = discord.ui.Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
+        _config.config_button.callback = _config.config_button_callback
+        _config.inaccurate_button_view.add_item(_config.config_button)
         _config.menu_message_channel = ctx.channel
-        _config.menu_message = await ctx.send(embed=embed, view=_config.innacurate_button_view)
+        _config.menu_message = await ctx.send(embed=embed, view=_config.inaccurate_button_view)
+
+        thread = Thread(target=between_callback, args=(asyncio.get_event_loop(),))
+        thread.start()
     else:
         await ctx.send(embed=embed)
 # <!-- menu --!>

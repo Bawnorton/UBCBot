@@ -12,7 +12,8 @@ import _menu
 
 current_editor = ""
 menu_message_channel = None
-innacurate_button_view: None | View = None
+inaccurate_button_view: None | View = None
+config_button: None | Button = None
 menu_message: None | discord.Message = None
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
@@ -24,7 +25,7 @@ time_editing: int = 0
 
 async def counter():
     global time_editing
-    while time_editing <= 300:
+    while time_editing <= 180:
         if current_editor == "":
             return
         time_editing += 1
@@ -93,7 +94,7 @@ async def save_button_callback(interaction: discord.Interaction):
         await option_message.delete()
     await config_message.delete()
     embed = await _reference.get_message(menu_message_channel, None)
-    menu_message = await menu_message.edit(embed=embed, view=innacurate_button_view)
+    menu_message = await menu_message.edit(embed=embed, view=inaccurate_button_view)
     option_message = None
     current_editor = ""
     time_editing = 0
@@ -198,3 +199,5 @@ async def config_button_callback(interaction: discord.Interaction):
                                                               f"2. Remove or add dishes to the stand (Can't be more than 5)\n"
                                                               f"3. Save the menu to update what .menu shows or cancel", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
+
+
