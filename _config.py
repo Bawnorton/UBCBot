@@ -98,12 +98,12 @@ async def present_options(interaction, selection):
     add_option_menu.callback = add_option_menu_callback
     view.add_item(add_option_menu)
 
-    save_button = Button(label="Save", style=discord.ButtonStyle.green)
+    save_button = Button(label="Save", style=discord.ButtonStyle.green, row=2)
     save_button.callback = save_button_callback
     view.add_item(save_button)
 
     embed.description = display
-    if i == 1:
+    if i == 0:
         embed.description = "Stand Empty"
     if option_message is None:
         option_message = await channel.send(embed=embed, view=view)
@@ -150,5 +150,7 @@ async def config_button_callback(interaction: discord.Interaction):
     view = View()
     view.add_item(select_menu)
     select_menu.callback = select_menu_callback
-    embed = discord.Embed(title="Configure Menu", description="Select which stand to configure", color=discord.Color.yellow())
+    embed = discord.Embed(title="Configure Menu", description=f"1. Select which stand to configure{' '}from the select menu below\n"
+                                                              f"2. Remove or add dishes to the stand\n"
+                                                              f"3. Save the menu to update what .menu shows", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
