@@ -1,6 +1,10 @@
 from __future__ import annotations
+
+import asyncio
+
 from discord.ui import Button, View, Select
 from discord import SelectOption
+from threading import Thread
 import discord
 import datetime
 import _reference
@@ -15,6 +19,21 @@ config_message: None | discord.Message = None
 json_menu: dict = {}
 saved_menu: dict = {}
 weekday: int = -1
+time_editing: int = 0
+
+
+async def counter():
+    global time_editing
+    while time_editing <= 300:
+        if current_editor == "":
+            return
+        time_editing += 1
+        await asyncio.sleep(1)
+    await cancel_button_callback(None)
+
+
+def between_callback(loop):
+    loop.create_task(counter())
 
 
 async def remove_button_callback(interaction: discord.Interaction):
@@ -35,20 +54,18 @@ async def add_option_menu_callback(interaction: discord.Interaction):
     await present_options(interaction, stand)
 
 
-async def cancel_button_callback(interaction: discord.Interaction):
-    global option_message
-    global current_editor
+async def cancel_button_callback(interaction: None | discord.Interaction):
+    global option_message, current_editor, time_editing
     if option_message is not None:
         await option_message.delete()
     await config_message.delete()
     option_message = None
     current_editor = ""
+    time_editing = 0
 
 
 async def save_button_callback(interaction: discord.Interaction):
-    global option_message
-    global current_editor
-    global menu_message
+    global option_message, current_editor, menu_message, time_editing
     history: dict = _reference.get_file("history")
     user: discord.User = interaction.user
     added = []
@@ -79,11 +96,13 @@ async def save_button_callback(interaction: discord.Interaction):
     menu_message = await menu_message.edit(embed=embed, view=innacurate_button_view)
     option_message = None
     current_editor = ""
+    time_editing = 0
 
 
 async def present_options(interaction, selection):
-    global option_message
+    global option_message, time_editing
     current_options = json_menu[selection][str(weekday)]
+    time_editing = 0
 
     channel = interaction.user.dm_channel
     embed = discord.Embed(title=_menu.positions.inverse[int(selection)])
@@ -133,11 +152,7 @@ async def select_menu_callback(interaction: discord.Interaction):
 
 
 async def config_button_callback(interaction: discord.Interaction):
-    global json_menu
-    global weekday
-    global config_message
-    global current_editor
-    global saved_menu
+    global json_menu, weekday, config_message, current_editor, saved_menu
     dm_channel = interaction.user.dm_channel
     if dm_channel is None:
         dm_channel = await interaction.user.create_dm()
@@ -148,6 +163,8 @@ async def config_button_callback(interaction: discord.Interaction):
         return
 
     current_editor = interaction.user.name
+    thread = Thread(target=between_callback, args=(asyncio.get_event_loop(),))
+    thread.start()
 
     json_menu = _reference.get_file("menu_store")
     saved_menu = _reference.get_file("menu_archive")
