@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.9
+#!/Users/benjamin/.pyenv/shims/python
 import traceback
 
 import _reference
