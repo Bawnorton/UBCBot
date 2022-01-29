@@ -11,7 +11,7 @@ current_editor = ""
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
 json_menu: dict = {}
-saved_menu = _reference.get_file("menu_archive")
+saved_menu: dict = {}
 weekday: int = -1
 
 
@@ -136,6 +136,7 @@ async def config_button_callback(interaction: discord.Interaction):
     global weekday
     global config_message
     global current_editor
+    global saved_menu
     dm_channel = interaction.user.dm_channel
     if dm_channel is None:
         dm_channel = await interaction.user.create_dm()
@@ -148,6 +149,7 @@ async def config_button_callback(interaction: discord.Interaction):
     current_editor = interaction.user.name
 
     json_menu = _reference.get_file("menu_store")
+    saved_menu = _reference.get_file("menu_archive")
     today = datetime.date.today()
     weekday = today.weekday()
 
