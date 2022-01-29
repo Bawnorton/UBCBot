@@ -1,8 +1,8 @@
-import datetime
-from datetime import datetime as dt
-
 from docx import Document
 from bs4 import BeautifulSoup
+from datetime import datetime as dt
+from bidict import bidict
+import datetime
 import discord
 import textract
 import os.path
@@ -20,6 +20,15 @@ INPUTS = {
     "nourish": "Nourish (Lunch)",
     "full": "Full Menu"
 }
+
+positions: bidict[str, int] = bidict({
+    "CHEF’S TABLE DINNER": 0,
+    "PIZZA & PASTA LUNCH/DINNER": 1,
+    "GRILL LUNCH/DINNER": 2,
+    "CHEF’S TABLE BREAKFAST": 3,
+    "NOURISH LUNCH": 4,
+    "AVAILABLE EVERY DAY: ALL DAY": 5
+})
 
 
 def get_pritchard_menu_file() -> str:
@@ -85,19 +94,12 @@ def generate_menu_json():
     if not create_new_menu:
         return json_content
 
+    json_content = {}
+
     menu_list = get_menu_as_list()
 
     current_position: int = -1
     current_day: int = -1
-
-    positions: dict[str, int] = {
-        "CHEF’S TABLE DINNER": 0,
-        "PIZZA & PASTA LUNCH/DINNER": 1,
-        "GRILL LUNCH/DINNER": 2,
-        "CHEF’S TABLE BREAKFAST": 3,
-        "NOURISH LUNCH": 4,
-        "AVAILABLE EVERY DAY: ALL DAY": 5
-    }
 
     days: dict[str, int] = {
         "MONDAY": 0,
@@ -133,22 +135,22 @@ def generate_menu_json():
         if current_position == -1 or current_day == -1:  # don't include junk info
             continue
 
-        if current_position not in json_content:  # make sure there is somewhere for data to go
-            json_content[current_position] = {}
+        if str(current_position) not in json_content:  # make sure there is somewhere for data to go
+            json_content[str(current_position)] = {}
 
-        if current_day not in json_content[current_position]:
-            json_content[current_position][current_day] = []
+        if str(current_day) not in json_content[str(current_position)]:
+            json_content[str(current_position)][str(current_day)] = []
 
         if current_position == 4 and current_day == 4:  # don't include nourish hint in FRIDAY menu
             if "*each bowl" in line.lower():
-                json_content[current_position]["nourish_message"] = line
+                json_content[str(current_position)]["nourish_message"] = line
                 continue
 
         if current_position == 5:  # don't include daily message junk
             if "*madewithout" in line.lower():
                 continue
 
-        json_content[current_position][current_day].append(line)
+        json_content[str(current_position)][str(current_day)].append(line)
 
     json_content["day_created"] = today.isoformat()
     _reference.save_file("menu_store", json_content)
@@ -195,17 +197,11 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
                     "Lunch and Dinner", "\n- ".join(menu['5']['9']))
     elif choice == 6:
         display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n{}\n- {}" \
-            .format(INPUTS["chefbr"],
-                    "\n- ".join(menu['3'][str(today.weekday())]),
-                    INPUTS["chef"],
-                    "\n- ".join(menu['0'][str(today.weekday())]),
-                    INPUTS["pizza&pasta"],
-                    "\n- ".join(menu['1'][str(today.weekday())]),
-                    INPUTS["grill"],
-                    "\n- ".join(menu['2'][str(today.weekday())]),
-                    INPUTS["nourish"],
-                    "".join(menu['4']["nourish_message"]),
-                    "\n- ".join(menu['4'][str(today.weekday())]))
+            .format(INPUTS["chefbr"], "\n- ".join(menu['3'][str(today.weekday())]),
+                    INPUTS["chef"], "\n- ".join(menu['0'][str(today.weekday())]),
+                    INPUTS["pizza&pasta"], "\n- ".join(menu['1'][str(today.weekday())]),
+                    INPUTS["grill"], "\n- ".join(menu['2'][str(today.weekday())]),
+                    INPUTS["nourish"], "".join(menu['4']["nourish_message"]), "\n- ".join(menu['4'][str(today.weekday())]))
     elif choice == 7:
         display = "Full Menu sent in direct messages"
         dm_embed = discord.Embed(title=INPUTS[selected_input],

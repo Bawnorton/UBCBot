@@ -4,11 +4,12 @@ import traceback
 import _reference
 import _menu
 import _calendar
-import datetime
+import _config
 import discord
 from _menu import get_display, get_weekly_menu
 from _calendar import get_calendar
 from _reference import client, TOKEN_MEE6
+from _config import Button, View
 
 
 @client.event
@@ -34,6 +35,8 @@ async def help(ctx):
     embed.add_field(name="menu", value="Get menu from pritchard\n.menu help")
     embed.add_field(name="calendar", value="Get academic calendar\n.calendar help")
     await ctx.send(embed=embed)
+
+
 # <!-- help --!>
 
 
@@ -46,7 +49,14 @@ async def menu(ctx, args=None):
         return
     selected_input = value[0]
     embed = await get_message(ctx, selected_input)
-    await ctx.send(embed=embed)
+    if selected_input is None:
+        config_button = Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
+        view = View()
+        view.add_item(config_button)
+        config_button.callback = _config.config_button_callback
+        await ctx.send(embed=embed, view=view)
+    else:
+        await ctx.send(embed=embed)
 
 
 async def get_message(ctx, selected_input) -> discord.Embed:
@@ -70,6 +80,8 @@ async def get_message(ctx, selected_input) -> discord.Embed:
     if "error" in weekly_menu.keys():
         embed.set_footer(text="Last Week's Menu - Pritchard Hasn't Updated Their Menu Yet")
     return embed
+
+
 # <!-- menu --!>
 
 
@@ -85,6 +97,8 @@ async def calendar(ctx, args=None):
         selected_input = "current"
     embed = get_calendar(ctx, selected_input)
     await ctx.send(embed=embed)
+
+
 # <!-- calendar --!>
 
 
