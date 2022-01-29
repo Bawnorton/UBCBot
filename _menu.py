@@ -201,7 +201,8 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
                     INPUTS["chef"], "\n- ".join(menu['0'][str(today.weekday())]),
                     INPUTS["pizza&pasta"], "\n- ".join(menu['1'][str(today.weekday())]),
                     INPUTS["grill"], "\n- ".join(menu['2'][str(today.weekday())]),
-                    INPUTS["nourish"], "".join(menu['4']["nourish_message"]), "\n- ".join(menu['4'][str(today.weekday())]))
+                    INPUTS["nourish"], "".join(menu['4']["nourish_message"]),
+                    "\n- ".join(menu['4'][str(today.weekday())] if str(today.weekday()) in menu['4'] else ["Not Open Today"]))
     elif choice == 7:
         display = "Full Menu sent in direct messages"
         dm_embed = discord.Embed(title=INPUTS[selected_input],

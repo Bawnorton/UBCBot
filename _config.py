@@ -39,7 +39,7 @@ def between_callback(loop):
 async def remove_button_callback(interaction: discord.Interaction):
     removed_id = interaction.data["custom_id"]
     selection = removed_id[0]
-    index = int(removed_id[-1])
+    index = int(removed_id[2:])
     json_menu[selection][str(weekday)].pop(index)
     await present_options(interaction, selection)
 
@@ -48,7 +48,7 @@ async def add_option_menu_callback(interaction: discord.Interaction):
     selection = interaction.data["values"][0]
     stand = selection[0]
     day = selection[2]
-    index = int(selection[4])
+    index = int(selection[4:])
     option = saved_menu[stand][day][index]
     json_menu[stand][str(weekday)].append(option)
     await present_options(interaction, stand)
@@ -140,6 +140,8 @@ async def present_options(interaction, selection):
     embed.description = display
     if i == 0:
         embed.description = "Stand Empty"
+    elif i == 5:
+        view.remove_item(add_option_menu)
     if option_message is None:
         option_message = await channel.send(embed=embed, view=view)
     else:
@@ -174,6 +176,8 @@ async def config_button_callback(interaction: discord.Interaction):
     today_menu = {}
     for key in json_menu.keys():
         if str(weekday) in json_menu[key]:
+            if key == "day_created":
+                continue
             today_menu[key] = json_menu[key][str(weekday)]
 
     select_options: list[SelectOption] = []
@@ -191,6 +195,6 @@ async def config_button_callback(interaction: discord.Interaction):
     view.add_item(cancel_button)
 
     embed = discord.Embed(title="Configure Menu", description=f"1. Select which stand to configure{' '}from the select menu below\n"
-                                                              f"2. Remove or add dishes to the stand\n"
+                                                              f"2. Remove or add dishes to the stand (Can't be more than 5)\n"
                                                               f"3. Save the menu to update what .menu shows or cancel", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
