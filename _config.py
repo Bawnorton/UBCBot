@@ -7,6 +7,7 @@ import _reference
 import _menu
 
 
+current_editor = ""
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
 json_menu: dict = {}
@@ -34,6 +35,7 @@ async def add_option_menu_callback(interaction: discord.Interaction):
 
 async def save_button_callback(interaction: discord.Interaction):
     global option_message
+    global current_editor
     history: dict = _reference.get_file("history")
     user: discord.User = interaction.user
     added = []
@@ -60,6 +62,7 @@ async def save_button_callback(interaction: discord.Interaction):
     await option_message.delete()
     await config_message.delete()
     option_message = None
+    current_editor = ""
 
 
 async def present_options(interaction, selection):
@@ -117,9 +120,17 @@ async def config_button_callback(interaction: discord.Interaction):
     global json_menu
     global weekday
     global config_message
+    global current_editor
     dm_channel = interaction.user.dm_channel
     if dm_channel is None:
         dm_channel = await interaction.user.create_dm()
+
+    if current_editor != "":
+        embed = discord.Embed(title="Configure Menu", description=f"Currently being edited by {current_editor}")
+        await dm_channel.send(embed=embed)
+        return
+
+    current_editor = interaction.user.name
 
     json_menu = _reference.get_file("menu_store")
     today = datetime.date.today()

@@ -35,8 +35,6 @@ async def help(ctx):
     embed.add_field(name="menu", value="Get menu from pritchard\n.menu help")
     embed.add_field(name="calendar", value="Get academic calendar\n.calendar help")
     await ctx.send(embed=embed)
-
-
 # <!-- help --!>
 
 
@@ -97,8 +95,6 @@ async def calendar(ctx, args=None):
         selected_input = "current"
     embed = get_calendar(ctx, selected_input)
     await ctx.send(embed=embed)
-
-
 # <!-- calendar --!>
 
 
