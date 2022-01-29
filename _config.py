@@ -118,10 +118,6 @@ async def present_options(interaction, selection):
     save_button.callback = save_button_callback
     view.add_item(save_button)
 
-    cancel_button = Button(label="Cancel", style=discord.ButtonStyle.red, row=2)
-    cancel_button.callback = cancel_button_callback
-    view.add_item(cancel_button)
-
     embed.description = display
     if i == 0:
         embed.description = "Stand Empty"
