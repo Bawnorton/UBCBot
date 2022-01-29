@@ -33,6 +33,16 @@ async def add_option_menu_callback(interaction: discord.Interaction):
     await present_options(interaction, stand)
 
 
+async def cancel_button_callback(interaction: discord.Interaction):
+    global option_message
+    global current_editor
+    if option_message is not None:
+        await option_message.delete()
+    await config_message.delete()
+    option_message = None
+    current_editor = ""
+
+
 async def save_button_callback(interaction: discord.Interaction):
     global option_message
     global current_editor
@@ -59,7 +69,8 @@ async def save_button_callback(interaction: discord.Interaction):
     )
     _reference.save_file("history", history)
     _reference.save_file("menu_store", json_menu)
-    await option_message.delete()
+    if option_message is not None:
+        await option_message.delete()
     await config_message.delete()
     option_message = None
     current_editor = ""
@@ -101,6 +112,10 @@ async def present_options(interaction, selection):
     save_button = Button(label="Save", style=discord.ButtonStyle.green, row=2)
     save_button.callback = save_button_callback
     view.add_item(save_button)
+
+    cancel_button = Button(label="Cancel", style=discord.ButtonStyle.red, row=2)
+    cancel_button.callback = cancel_button_callback
+    view.add_item(cancel_button)
 
     embed.description = display
     if i == 0:
@@ -146,11 +161,16 @@ async def config_button_callback(interaction: discord.Interaction):
         select_options.append(
             SelectOption(label=_menu.positions.inverse[int(key)], value=key)
         )
-    select_menu = Select(options=select_options, placeholder="Choose a Stand")
     view = View()
-    view.add_item(select_menu)
+    select_menu = Select(options=select_options, placeholder="Choose a Stand")
     select_menu.callback = select_menu_callback
+    view.add_item(select_menu)
+
+    cancel_button = Button(label="Cancel", style=discord.ButtonStyle.red, row=1)
+    cancel_button.callback = cancel_button_callback
+    view.add_item(cancel_button)
+
     embed = discord.Embed(title="Configure Menu", description=f"1. Select which stand to configure{' '}from the select menu below\n"
                                                               f"2. Remove or add dishes to the stand\n"
-                                                              f"3. Save the menu to update what .menu shows", color=discord.Color.yellow())
+                                                              f"3. Save the menu to update what .menu shows or cancel", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
