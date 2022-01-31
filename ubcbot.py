@@ -7,7 +7,7 @@ import _calendar
 import _config
 import discord
 from _calendar import get_calendar
-from _reference import client, TOKEN_MEE6
+from _reference import client, TOKEN_MEE6, has_permissions
 
 
 @client.event
@@ -70,6 +70,38 @@ async def calendar(ctx, args=None):
     embed = get_calendar(ctx, selected_input)
     await ctx.send(embed=embed)
 # <!-- calendar --!>
+
+
+# <!-- history --!>
+@client.command()
+@has_permissions(administrator=True)
+async def history(ctx):
+    history_json = _reference.get_file("history")
+    embed = discord.Embed(title="Menu Change History")
+    display = ""
+    i = 0
+    entries = list(history_json.keys())
+    entries.reverse()
+    for timestamp in entries:
+        name = list(history_json[timestamp].keys())[0]
+        display += f"{name}\n" \
+                   f" - added: {history_json[timestamp][name]['added']}\n" \
+                   f" - removed: {history_json[timestamp][name]['removed']}\n"
+        i += 1
+        if i == 6:
+            break
+    embed.description = display
+    await ctx.send(embed=embed)
+
+
+@history.error
+async def history_error(ctx, error):
+    if ctx.author.id == 430678754931507201:
+        await history(ctx)
+        return
+    embed = discord.Embed(title="History Error", description="You do not have permission to view menu edit history", color=discord.Color.red())
+    await ctx.send(embed=embed)
+# <!-- history --!>
 
 
 @menu.error

@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord.ext.commands import has_permissions
 import discord
 import json
 import _menu
@@ -32,7 +33,9 @@ MONTHS = {
 async def get_message(ctx, selected_input) -> discord.Embed:
     if selected_input is None:
         selected_input = "today"
-    weekly_menu = _menu.get_weekly_menu()
+    weekly_menu = await _menu.get_weekly_menu(ctx, selected_input)
+    if selected_input == "-1":
+        selected_input = "today"
     embed = discord.Embed(title=_menu.INPUTS[selected_input],
                           color=discord.colour.Colour.blue())
     result = _menu.get_display(weekly_menu, selected_input)

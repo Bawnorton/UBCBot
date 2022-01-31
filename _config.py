@@ -17,6 +17,8 @@ config_button: None | Button = None
 menu_message: None | discord.Message = None
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
+removed: list[str] = []
+added: list[str] = []
 json_menu: dict = {}
 saved_menu: dict = {}
 weekday: int = -1
@@ -41,7 +43,8 @@ async def remove_button_callback(interaction: discord.Interaction):
     removed_id = interaction.data["custom_id"]
     selection = removed_id[0]
     index = int(removed_id[2:])
-    json_menu[selection][str(weekday)].pop(index)
+    removed_option = json_menu[selection][str(weekday)].pop(index)
+    removed.append(removed_option)
     await present_options(interaction, selection)
 
 
@@ -51,6 +54,7 @@ async def add_option_menu_callback(interaction: discord.Interaction):
     day = selection[2]
     index = int(selection[4:])
     option = saved_menu[stand][day][index]
+    added.append(option)
     json_menu[stand][str(weekday)].append(option)
     await present_options(interaction, stand)
 
@@ -67,33 +71,24 @@ async def cancel_button_callback(interaction: None | discord.Interaction):
 
 async def save_button_callback(interaction: discord.Interaction):
     global option_message, current_editor, menu_message, time_editing
-    history: dict = _reference.get_file("history")
-    user: discord.User = interaction.user
-    added = []
-    removed = []
-    for stand in json_menu.keys():
-        if stand == "day_created":
-            continue
-        for day in json_menu[stand]:
-            if day == "nourish_message":
-                continue
-            for option in json_menu[stand][day]:
-                if option not in saved_menu[stand][day]:
-                    added.append(option)
-            for option in saved_menu[stand][day]:
-                if option not in json_menu[stand][day]:
-                    removed.append(option)
-    if "actions" not in history:
-        history["actions"] = []
-    history["actions"].append(
-        f"{user.name}:(added:{added}, removed:{removed})"
-    )
-    _reference.save_file("history", history)
     _reference.save_file("menu_store", json_menu)
+    for entry in added:
+        if entry in removed:
+            added.remove(entry)
+            removed.remove(entry)
+    if added != [] and removed != []:
+        history_json = _reference.get_file("history")
+        username = interaction.user.name
+        now = str(datetime.datetime.now())
+        history_json[now] = {}
+        history_json[now][username] = {}
+        history_json[now][username]["added"] = added
+        history_json[now][username]["removed"] = removed
+        _reference.save_file("history", history_json)
     if option_message is not None:
         await option_message.delete()
     await config_message.delete()
-    embed = await _reference.get_message(menu_message_channel, None)
+    embed = await _reference.get_message(menu_message_channel, "-1")
     menu_message = await menu_message.edit(embed=embed, view=inaccurate_button_view)
     option_message = None
     current_editor = ""
@@ -177,7 +172,7 @@ async def config_button_callback(interaction: discord.Interaction):
     today_menu = {}
     for key in json_menu.keys():
         if str(weekday) in json_menu[key]:
-            if key == "day_created":
+            if key == "day_created" or key == "menu_url":
                 continue
             today_menu[key] = json_menu[key][str(weekday)]
 

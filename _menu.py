@@ -1,3 +1,6 @@
+import asyncio
+from threading import Thread
+
 from docx import Document
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
@@ -31,7 +34,7 @@ positions: bidict[str, int] = bidict({
 })
 
 
-def get_pritchard_menu_file() -> str:
+def get_pritchard_menu_file(menu_url: str) -> tuple[str, str]:
     p_website = "https://food.ok.ubc.ca/places/pritchard/"
     p_response = requests.get(p_website)
     p_soup = BeautifulSoup(p_response.text, 'html.parser')
@@ -44,6 +47,9 @@ def get_pritchard_menu_file() -> str:
                 p_menu_url = link
                 break
 
+    if p_menu_url == menu_url:
+        return "old_menu", p_menu_url
+
     if p_menu_url == "":
         raise ResourceWarning("Cannot Find Menu")
 
@@ -52,11 +58,13 @@ def get_pritchard_menu_file() -> str:
         p_menu = requests.get(p_menu_url)
         with open(p_menu_cache_file, 'wb') as file:
             file.write(p_menu.content)
-    return p_menu_cache_file
+    return p_menu_cache_file, p_menu_url
 
 
-def get_menu_as_list():
-    file_path = get_pritchard_menu_file()
+def get_menu_as_list(menu_url) -> tuple[list[str], str]:
+    file_path, url = get_pritchard_menu_file(menu_url)
+    if file_path == "old_menu":
+        return ["old_menu"], url
     file_type = file_path.rpartition('.')[-1]
     lines: list[str] = []
 
@@ -75,10 +83,10 @@ def get_menu_as_list():
     while "" in lines:
         lines.remove("")
 
-    return lines
+    return lines, url
 
 
-def generate_menu_json():
+async def generate_menu_json(ctx, n):
     today = datetime.date.today()
     create_new_menu: bool = False
     json_content = _reference.get_file("menu_store")
@@ -91,12 +99,25 @@ def generate_menu_json():
     else:
         create_new_menu = True
 
-    if not create_new_menu:
+    menu_url = ""
+
+    if "menu_url" in json_content:
+        menu_url = json_content["menu_url"]
+
+    if not create_new_menu or n == "-1":
+        return json_content
+
+    embed = discord.Embed(title="Getting New Menu", description="May take a couple seconds")
+    message = await ctx.send(embed=embed)
+
+    menu_list, url = get_menu_as_list(menu_url)
+
+    if menu_list[0] == "old_menu":
+        embed = discord.Embed(title="Getting New Menu", description="Unable to get new menu\nDefaulting to last week's, may be inaccurate")
+        await message.edit(embed=embed)
         return json_content
 
     json_content = {}
-
-    menu_list = get_menu_as_list()
 
     current_position: int = -1
     current_day: int = -1
@@ -153,6 +174,7 @@ def generate_menu_json():
         json_content[str(current_position)][str(current_day)].append(line)
 
     json_content["day_created"] = today.isoformat()
+    json_content["menu_url"] = url
     _reference.save_file("menu_store", json_content)
     return json_content
 
@@ -239,6 +261,6 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
     return display, dm_embed
 
 
-def get_weekly_menu() -> dict:
-    menu = generate_menu_json()
+async def get_weekly_menu(ctx, n) -> dict:
+    menu = await generate_menu_json(ctx, n)
     return menu
