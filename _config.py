@@ -70,7 +70,7 @@ async def cancel_button_callback(interaction: None | discord.Interaction):
 
 
 async def save_button_callback(interaction: discord.Interaction):
-    global option_message, current_editor, menu_message, time_editing
+    global option_message, current_editor, menu_message, time_editing, added, removed
     _reference.save_file("menu_store", json_menu)
     for entry in added:
         if entry in removed:
@@ -78,13 +78,15 @@ async def save_button_callback(interaction: discord.Interaction):
             removed.remove(entry)
     if added != [] and removed != []:
         history_json = _reference.get_file("history")
-        username = interaction.user.name
+        username = f"<@!{interaction.user.id}"
         now = str(datetime.datetime.now())
         history_json[now] = {}
         history_json[now][username] = {}
         history_json[now][username]["added"] = added
         history_json[now][username]["removed"] = removed
         _reference.save_file("history", history_json)
+        added = []
+        removed = []
     if option_message is not None:
         await option_message.delete()
     await config_message.delete()

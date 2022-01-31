@@ -75,20 +75,20 @@ async def calendar(ctx, args=None):
 # <!-- history --!>
 @client.command()
 @has_permissions(administrator=True)
-async def history(ctx):
+async def history(ctx, limit=5):
     history_json = _reference.get_file("history")
     embed = discord.Embed(title="Menu Change History")
     display = ""
-    i = 0
     entries = list(history_json.keys())
     entries.reverse()
+    i = 0
     for timestamp in entries:
         name = list(history_json[timestamp].keys())[0]
         display += f"{name}\n" \
                    f" - added: {history_json[timestamp][name]['added']}\n" \
                    f" - removed: {history_json[timestamp][name]['removed']}\n"
         i += 1
-        if i == 6:
+        if i == limit + 1:
             break
     embed.description = display
     await ctx.send(embed=embed)
