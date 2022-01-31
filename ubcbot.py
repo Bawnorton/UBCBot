@@ -22,6 +22,10 @@ async def on_message(message):
     await client.wait_until_ready()
     if message.author == client.user:
         return
+    if _config.item_to_add:
+        if f"<@!{message.author.id}>" == _config.current_editor:
+            if isinstance(message.channel, discord.DMChannel):
+                await _config.process_item(message)
     await client.process_commands(message)
 
 
@@ -33,6 +37,8 @@ async def help(ctx):
     embed.add_field(name="menu", value="Get menu from pritchard\n.menu help")
     embed.add_field(name="calendar", value="Get academic calendar\n.calendar help")
     await ctx.send(embed=embed)
+
+
 # <!-- help --!>
 
 
@@ -54,6 +60,8 @@ async def menu(ctx, args=None):
         _config.menu_message = await ctx.send(embed=embed, view=_config.inaccurate_button_view)
     else:
         await ctx.send(embed=embed)
+
+
 # <!-- menu --!>
 
 
@@ -69,6 +77,8 @@ async def calendar(ctx, args=None):
         selected_input = "current"
     embed = get_calendar(ctx, selected_input)
     await ctx.send(embed=embed)
+
+
 # <!-- calendar --!>
 
 
@@ -84,9 +94,16 @@ async def history(ctx, limit=5):
     i = 0
     for timestamp in entries:
         name = list(history_json[timestamp].keys())[0]
-        display += f"{name}\n" \
-                   f" - added: {history_json[timestamp][name]['added']}\n" \
-                   f" - removed: {history_json[timestamp][name]['removed']}\n"
+        added = history_json[timestamp][name]['added']
+        removed = history_json[timestamp][name]['removed']
+        changed = history_json[timestamp][name]['database_edit']
+        display += f"{name}\n"
+        if added:
+            display += f" - added: {added}\n"
+        if removed:
+            display += f" - removed: {removed}\n"
+        if changed:
+            display += f" - db_added: {changed}\n"
         i += 1
         if i == limit + 1:
             break
@@ -101,6 +118,8 @@ async def history_error(ctx, error):
         return
     embed = discord.Embed(title="History Error", description="You do not have permission to view menu edit history", color=discord.Color.red())
     await ctx.send(embed=embed)
+
+
 # <!-- history --!>
 
 

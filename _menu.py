@@ -117,6 +117,9 @@ async def generate_menu_json(ctx, n):
         await message.edit(embed=embed)
         return json_content
 
+    embed = discord.Embed(title="Getting New Menu", description="Found New Menu")
+    await message.edit(embed=embed)
+
     json_content = {}
 
     current_position: int = -1

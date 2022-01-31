@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Union
 
 from discord.ui import Button, View, Select
 from discord import SelectOption
@@ -10,13 +11,21 @@ import datetime
 import _reference
 import _menu
 
-current_editor = ""
 menu_message_channel = None
+
 inaccurate_button_view: None | View = None
+
 config_button: None | Button = None
+
 menu_message: None | discord.Message = None
 option_message: None | discord.Message = None
 config_message: None | discord.Message = None
+add_option_message: None | discord.Message = None
+confirm_message: None | discord.Message = None
+
+current_editor: str = ""
+process_item_stand: str = "-1"
+item_to_add: bool = False
 removed: list[str] = []
 added: list[str] = []
 json_menu: dict = {}
@@ -48,10 +57,75 @@ async def remove_button_callback(interaction: discord.Interaction):
     await present_options(interaction, selection)
 
 
+async def process_item_confirm_button_callback(interaction: discord.Interaction):
+    added_item = interaction.data["custom_id"].capitalize()
+    saved_menu[process_item_stand][str(weekday)].append(added_item)
+    _reference.save_file("menu_archive", saved_menu)
+
+    history_json = _reference.get_file("history")
+    username = f"<@!{interaction.user.id}>"
+    now = str(datetime.datetime.now())
+    history_json[now] = {}
+    history_json[now][username] = {}
+    history_json[now][username]["added"] = []
+    history_json[now][username]["removed"] = []
+    history_json[now][username]["database_edit"] = f"\"{_menu.positions.inverse[int(process_item_stand)]}: {added_item}\""
+    _reference.save_file("history", history_json)
+
+    await confirm_message.delete()
+    await add_option_message.delete()
+    await present_options(interaction, process_item_stand)
+
+
+async def process_item_cancel_button_callback(interaction: discord.Interaction):
+    await confirm_message.delete()
+    await add_option_message.delete()
+    await present_options(interaction, process_item_stand)
+
+
+async def process_item(message):
+    global confirm_message
+    item = message.content
+    embed = discord.Embed(title="Item to Add", description=f"\"{item}\"\nThis will appear in the menu edit history", color=discord.Color.yellow())
+
+    view = View()
+    confirm_button = Button(label="Confirm", style=discord.ButtonStyle.green, custom_id=item)
+    confirm_button.callback = process_item_confirm_button_callback
+    view.add_item(confirm_button)
+
+    cancel_button = Button(label="Cancel", style=discord.ButtonStyle.red)
+    cancel_button.callback = process_item_cancel_button_callback
+    view.add_item(cancel_button)
+
+    confirm_message = await message.channel.send(embed=embed, view=view)
+
+
+async def add_option_to_list(stand, interaction: discord.Interaction):
+    global item_to_add, add_option_message, process_item_stand
+    embed = discord.Embed(title="Add Menu Item",
+                          description=f"Next message sent will be what is added to the {_menu.positions.inverse[int(stand)]} stand",
+                          color=discord.Color.yellow())
+    process_item_stand = stand
+    channel = interaction.channel
+    add_option_message = await channel.send(embed=embed)
+    item_to_add = True
+
+
 async def add_option_menu_callback(interaction: discord.Interaction):
     selection = interaction.data["values"][0]
     stand = selection[0]
     day = selection[2]
+    if day == "n":
+        await add_option_to_list(stand, interaction)
+        return
+    try:
+        try:
+            await add_option_message.delete()
+            await confirm_message.delete()
+        except discord.NotFound:
+            pass
+    except AttributeError:
+        pass
     index = int(selection[4:])
     option = saved_menu[stand][day][index]
     added.append(option)
@@ -84,6 +158,7 @@ async def save_button_callback(interaction: discord.Interaction):
         history_json[now][username] = {}
         history_json[now][username]["added"] = added
         history_json[now][username]["removed"] = removed
+        history_json[now][username]["database_edit"] = []
         _reference.save_file("history", history_json)
         added = []
         removed = []
@@ -127,6 +202,7 @@ async def present_options(interaction, selection):
                     SelectOption(label=option, value=f"{selection}:{day}:{j}")
                 )
             j += 1
+    possible_options.append(SelectOption(label="Add Item to List", value=f"{selection}:n"))
     add_option_menu = Select(options=possible_options, placeholder="Add Menu Item")
     add_option_menu.callback = add_option_menu_callback
     view.add_item(add_option_menu)
@@ -162,7 +238,7 @@ async def config_button_callback(interaction: discord.Interaction):
         await dm_channel.send(embed=embed)
         return
 
-    current_editor = interaction.user.name
+    current_editor = f"<@!{interaction.user.id}>"
     thread = Thread(target=between_callback, args=(asyncio.get_event_loop(),))
     thread.start()
 
@@ -194,6 +270,7 @@ async def config_button_callback(interaction: discord.Interaction):
 
     embed = discord.Embed(title="Configure Menu", description=f"1. Select which stand to configure{' '}from the select menu below\n"
                                                               f"2. Remove or add dishes to the stand (Can't be more than 5)\n"
+                                                              f"    - Option to \"Add Item to List\" at the bottom of select menu\n"
                                                               f"3. Save the menu to update what .menu shows or cancel", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
 
