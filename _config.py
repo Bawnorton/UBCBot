@@ -60,7 +60,7 @@ async def remove_button_callback(interaction: discord.Interaction):
 async def process_item_confirm_button_callback(interaction: discord.Interaction):
     added_item = interaction.data["custom_id"].capitalize()
     saved_menu[process_item_stand][str(weekday)].append(added_item)
-    _reference.save_file("menu_archive", saved_menu)
+    _reference.save_file("menu_database", saved_menu)
 
     history_json = _reference.get_file("history")
     username = f"<@!{interaction.user.id}>"
@@ -243,7 +243,7 @@ async def config_button_callback(interaction: discord.Interaction):
     thread.start()
 
     json_menu = _reference.get_file("menu_store")
-    saved_menu = _reference.get_file("menu_archive")
+    saved_menu = _reference.get_file("menu_database")
     today = datetime.date.today()
     weekday = today.weekday()
 
