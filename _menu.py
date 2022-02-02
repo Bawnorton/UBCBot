@@ -1,6 +1,3 @@
-import asyncio
-from threading import Thread
-
 from docx import Document
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
@@ -70,7 +67,7 @@ def get_menu_as_list(menu_url) -> tuple[list[str], str]:
 
     if "pdf" in file_type:
         pdf = str(textract.process(file_path)) \
-            .replace("\\xe2\\x80\\x99", "\'").replace("\\x0c", "").replace("- ", "").replace("-", "").replace("b'", '')
+            .replace("\\xe2\\x80\\x99", "’").replace("\\x0c", "").replace("- ", "").replace("-", "").replace("b'", '')
         lines = pdf.split("\\n")
     elif "docx" in file_type:
         document = Document(file_path)
