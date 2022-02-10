@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Union
 
 from discord.ui import Button, View, Select
 from discord import SelectOption
@@ -62,12 +61,14 @@ async def process_item_confirm_button_callback(interaction: discord.Interaction)
     saved_menu[process_item_stand][str(weekday)].append(added_item)
     _reference.save_file("menu_database", saved_menu)
 
+    json_menu[process_item_stand][str(weekday)].append(added_item)
+
     history_json = _reference.get_file("history")
     username = f"<@!{interaction.user.id}>"
     now = str(datetime.datetime.now())
     history_json[now] = {}
     history_json[now][username] = {}
-    history_json[now][username]["added"] = []
+    history_json[now][username]["added"] = [added_item]
     history_json[now][username]["removed"] = []
     history_json[now][username]["database_edit"] = f"\"{_menu.positions.inverse[int(process_item_stand)]}: {added_item}\""
     _reference.save_file("history", history_json)
@@ -152,7 +153,7 @@ async def save_button_callback(interaction: discord.Interaction):
             removed.remove(entry)
     if added != [] and removed != []:
         history_json = _reference.get_file("history")
-        username = f"<@!{interaction.user.id}"
+        username = f"<@!{interaction.user.id}>"
         now = str(datetime.datetime.now())
         history_json[now] = {}
         history_json[now][username] = {}
@@ -271,7 +272,8 @@ async def config_button_callback(interaction: discord.Interaction):
     embed = discord.Embed(title="Configure Menu", description=f"1. Select which stand to configure{' '}from the select menu below\n"
                                                               f"2. Remove or add dishes to the stand (Can't be more than 5)\n"
                                                               f"    - Option to \"Add Item to List\" at the bottom of select menu\n"
-                                                              f"3. Save the menu to update what .menu shows or cancel", color=discord.Color.yellow())
+                                                              f"3. Save the menu to update what .menu shows or cancel\n"
+                                                              f"    - A new menu does not need to be called", color=discord.Color.yellow())
     config_message = await dm_channel.send(embed=embed, view=view)
 
 

@@ -1,5 +1,4 @@
 from discord.ext import commands
-from discord.ext.commands import has_permissions
 import discord
 import json
 import _menu

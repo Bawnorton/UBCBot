@@ -1,4 +1,4 @@
-import _calendar
+import calendar
 import datetime
 
 import discord
@@ -97,11 +97,11 @@ def get_calendar(ctx, section) -> discord.Embed:
         break_month = months[break_period[:3]]
         current_month = months[month_current[:3]]
         if current_month < break_month or (break_month == current_month and today.day <= last_day):
-            start_weekday = _calendar.day_name[datetime.datetime(year, break_month, first_day).weekday()]
-            end_weekday = _calendar.day_name[datetime.datetime(year, break_month, last_day).weekday()]
+            start_weekday = calendar.day_name[datetime.datetime(year, break_month, first_day).weekday()]
+            end_weekday = calendar.day_name[datetime.datetime(year, break_month, last_day).weekday()]
             student_calendar["break"] = ("Midterm Break",
-                                         f"{start_weekday}, {_calendar.month_name[break_month]} {first_day} to "
-                                         f"{end_weekday}, {_calendar.month_name[break_month]} {last_day}")
+                                         f"{start_weekday}, {calendar.month_name[break_month]} {first_day} to "
+                                         f"{end_weekday}, {calendar.month_name[break_month]} {last_day}")
     if "break" not in student_calendar.keys():
         term_end = ok_calendar[current_session][current_term]["Exams Finish"]
         term_start = student_calendar["next"][1]["Start"]

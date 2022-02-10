@@ -1,13 +1,15 @@
 #!/Users/benjamin/.pyenv/shims/python
 import traceback
 
+from discord.ext.commands import has_permissions
+
 import _reference
 import _menu
 import _calendar
 import _config
 import discord
 from _calendar import get_calendar
-from _reference import client, TOKEN_MEE6, has_permissions
+from _reference import client, TOKEN_MEE6
 
 
 @client.event
