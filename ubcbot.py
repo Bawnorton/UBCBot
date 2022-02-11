@@ -31,6 +31,14 @@ async def on_message(message):
     await client.process_commands(message)
 
 
+@client.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    if before.nick != after.nick:
+        locked_names = _reference.get_file("locked_names")
+        if str(before.id) in locked_names.keys():
+            await after.edit(nick=locked_names[str(before.id)])
+
+
 # <!-- help --!>
 @client.command()
 async def help(ctx):
@@ -62,8 +70,6 @@ async def menu(ctx, args=None):
         _config.menu_message = await ctx.send(embed=embed, view=_config.inaccurate_button_view)
     else:
         await ctx.send(embed=embed)
-
-
 # <!-- menu --!>
 
 
@@ -79,9 +85,49 @@ async def calendar(ctx, args=None):
         selected_input = "current"
     embed = get_calendar(ctx, selected_input)
     await ctx.send(embed=embed)
-
-
 # <!-- calendar --!>
+
+
+# <!-- locknickname --!>
+@client.command()
+@has_permissions(manage_nicknames=True)
+async def locknickname(ctx, mention, name):
+    if mention is None or "<@" not in mention:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A user mention is required"))
+        return
+    elif "<@&" in mention:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="User cannot be a bot"))
+        return
+    if name is None:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A nickname is required"))
+        return
+    user_id = int(mention[3:-1])
+    guild: discord.Guild = client.get_guild(ctx.guild.id)
+    user: discord.Member = guild.get_member(user_id)
+    try:
+        await user.edit(nick=name)
+    except discord.Forbidden:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error",
+                                           description=f"I don't have the required permissions to set <@{user_id}>'s nickname"))
+        return
+    locked_names = _reference.get_file("locked_names")
+    locked_names[user_id] = name
+    _reference.save_file("locked_names", locked_names)
+    await ctx.send(embed=discord.Embed(title="Lock Nickname", description=f"<@{user_id}>'s nickname has been locked to {name}"))
+
+
+@client.command()
+@has_permissions(manage_nicknames=True)
+async def unlocknickname(ctx, mention):
+    if mention is None or "<@!" not in mention:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error"), description="A user mention is required")
+        return
+    user_id = mention[3:-1]
+    locked_names = _reference.get_file("locked_names")
+    locked_names.pop(user_id, None)
+    _reference.save_file("locked_names", locked_names)
+    await ctx.send(embed=discord.Embed(title="Lock Nickname", description=f"<@{user_id}>'s nickname has been unlocked"))
+# <!-- locknickname --!>
 
 
 # <!-- history --!>
