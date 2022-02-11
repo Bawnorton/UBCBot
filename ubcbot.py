@@ -96,7 +96,7 @@ async def locknickname(ctx, mention, name):
         await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A user mention is required"))
         return
     elif "<@&" in mention:
-        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="User cannot be a bot"))
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="Mention cannot be a role"))
         return
     if name is None:
         await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A nickname is required"))
