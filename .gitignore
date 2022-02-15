@@ -5,6 +5,6 @@ nohup.out
 calendar.pdf
 .idea
 history.json
-menu_database.json
-menu_store.json
 locked_names.json
+menu.txt
+menu.json

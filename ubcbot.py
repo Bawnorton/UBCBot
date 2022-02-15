@@ -17,6 +17,7 @@ async def on_ready():
     print("online")
     await client.change_presence(activity=discord.Activity(
         type=discord.ActivityType.playing, name=".help"))
+    _menu.generate_menu(False)
 
 
 @client.event
@@ -47,8 +48,6 @@ async def help(ctx):
     embed.add_field(name="menu", value="Get menu from pritchard\n.menu help")
     embed.add_field(name="calendar", value="Get academic calendar\n.calendar help")
     await ctx.send(embed=embed)
-
-
 # <!-- help --!>
 
 
@@ -166,8 +165,6 @@ async def history_error(ctx, error):
         return
     embed = discord.Embed(title="History Error", description="You do not have permission to view menu edit history", color=discord.Color.red())
     await ctx.send(embed=embed)
-
-
 # <!-- history --!>
 
 

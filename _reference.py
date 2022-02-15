@@ -1,6 +1,8 @@
-from discord.ext import commands
-import discord
 import json
+
+import discord
+from discord.ext import commands
+
 import _menu
 
 intents = discord.Intents.all()
@@ -32,7 +34,7 @@ MONTHS = {
 async def get_message(ctx, selected_input) -> discord.Embed:
     if selected_input is None:
         selected_input = "today"
-    weekly_menu = await _menu.get_weekly_menu(ctx, selected_input)
+    weekly_menu = await _menu.get_weekly_menu()
     if selected_input == "-1":
         selected_input = "today"
     embed = discord.Embed(title=_menu.INPUTS[selected_input],
@@ -49,8 +51,6 @@ async def get_message(ctx, selected_input) -> discord.Embed:
             channel = await user.create_dm()
         await channel.send(embed=dm_embed)
     embed.description = display
-    if "error" in weekly_menu.keys():
-        embed.set_footer(text="Last Week's Menu - Pritchard Hasn't Updated Their Menu Yet")
     return embed
 
 
