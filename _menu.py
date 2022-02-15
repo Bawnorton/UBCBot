@@ -1,7 +1,10 @@
+import asyncio
 import datetime
 
 import discord
 from bidict import bidict
+from discord import Webhook
+import aiohttp
 
 import _reference
 
@@ -26,6 +29,33 @@ positions: bidict[str, int] = bidict({
     "Grill House (1130am-3pm, 5pm-930pm)": 5,
     "Nourish (1130am-3pm)": 6
 })
+
+last_day = datetime.datetime.today()
+current_day = datetime.datetime.today()
+
+
+async def day_check():
+    global last_day, current_day
+    while True:
+        current_day = datetime.datetime.today()
+        if current_day.day != last_day.day:
+            last_day = current_day
+            await send_daily_menu()
+        await asyncio.sleep(3600)  # 1hr
+
+
+def between_callback(loop):
+    loop.create_task(day_check())
+
+
+async def send_daily_menu():
+    async with aiohttp.ClientSession() as session:
+        webhook = Webhook.from_url(
+            "https://discord.com/api/webhooks/943247975029801060/fVmsptEJNGy-1gRNVesANZ58O_sf9yCZIetlCk9lwRgvPcHo-HyY2frHIhZ5edxSRDl2",
+            session=session)
+        embed = await _reference.get_message(None, None)
+        await webhook.send(embed=embed, username="UBCO 2025 Webhook",
+                           avatar_url="https://cdn.discordapp.com/avatars/897829450857726003/c58e8db16963e74566943d817dd79e9a.webp?size=160")
 
 
 def contains_lower(s):
@@ -125,7 +155,7 @@ def generate_menu_json():
     return json_content
 
 
-def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
+def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
     today = datetime.date.today()
     choices = {
         "chefbr": 0,
@@ -139,9 +169,10 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
         "full": 8
     }
     choice = choices[selected_input]
-    display, dm_embed = None, None
+    display, dm_embed = discord.Embed(title=INPUTS[selected_input],
+                                      color=discord.colour.Colour.blue()), None
     if choice <= 5:
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+        display.description = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
             .format("Monday", "\n- ".join(menu[str(choice)]['0']),
                     "Tuesday", "\n- ".join(menu[str(choice)]['1']),
                     "Wednesday", "\n- ".join(menu[str(choice)]['2']),
@@ -150,7 +181,7 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
                     "Saturday", "\n- ".join(menu[str(choice)]['5']),
                     "Sunday", "\n- ".join(menu[str(choice)]['6']))
     elif choice == 6:
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
+        display.description = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
             .format("Monday", "\n- ".join(menu['6']['0']),
                     "Tuesday", "\n- ".join(menu['6']['1']),
                     "Wednesday", "\n- ".join(menu['6']['2']),
@@ -159,17 +190,16 @@ def get_display(menu, selected_input) -> tuple[str, discord.Embed]:
                     "Saturday", "\n- ".join(["Not Open on Saturday"]),
                     "Sunday", "\n- ".join(["Not Open on Sunday"]))
     elif choice == 7:
-        display = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format(INPUTS["chefbr"], "\n- ".join(menu['0'][str(today.weekday())]),
-                    INPUTS["chef"], "\n- ".join(menu['1'][str(today.weekday())]),
-                    INPUTS["pizza"], "\n- ".join(menu['2'][str(today.weekday())]),
-                    INPUTS["pasta"], "\n- ".join(menu['3'][str(today.weekday())]),
-                    INPUTS["grillbr"], "\n- ".join(menu['4'][str(today.weekday())]),
-                    INPUTS["grill"], "\n- ".join(menu['5'][str(today.weekday())]),
-                    INPUTS["nourish"], "\n- ".join(menu['6'][str(today.weekday())]
-                                                   if today.weekday() < 5 else ["Not Open Today"]))
+        display.add_field(name=INPUTS["chefbr"], value="-" + "\n- ".join(menu['0'][str(today.weekday())]))
+        display.add_field(name=INPUTS["chef"], value="-" + "\n- ".join(menu['1'][str(today.weekday())]))
+        display.add_field(name=INPUTS["pizza"], value="-" + "\n- ".join(menu['2'][str(today.weekday())]))
+        display.add_field(name=INPUTS["pasta"], value="-" + "\n- ".join(menu['3'][str(today.weekday())]))
+        display.add_field(name=INPUTS["grillbr"], value="-" + "\n- ".join(menu['4'][str(today.weekday())]))
+        display.add_field(name=INPUTS["grill"], value="-" + "\n- ".join(menu['5'][str(today.weekday())]))
+        display.add_field(name=INPUTS["nourish"], value="-" + "\n- ".join(menu['6'][str(today.weekday())]
+                                                                          if today.weekday() < 5 else ["Not Open Today"]))
     elif choice == 8:
-        display = "Full Menu sent in direct messages"
+        display.description = "Full Menu sent in direct messages"
         dm_embed = discord.Embed(title=INPUTS[selected_input],
                                  color=discord.colour.Colour.blue())
         format_menus = []

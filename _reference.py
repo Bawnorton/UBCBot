@@ -37,11 +37,9 @@ async def get_message(ctx, selected_input) -> discord.Embed:
     weekly_menu = await _menu.get_weekly_menu()
     if selected_input == "-1":
         selected_input = "today"
-    embed = discord.Embed(title=_menu.INPUTS[selected_input],
-                          color=discord.colour.Colour.blue())
     result = _menu.get_display(weekly_menu, selected_input)
     display = result[0]
-    if result[1] is not None:
+    if result[1] is not None and ctx is not None:
         dm_embed = result[1]
         user = client.get_user(ctx.author.id)
         if user is None:
@@ -50,8 +48,7 @@ async def get_message(ctx, selected_input) -> discord.Embed:
         if channel is None:
             channel = await user.create_dm()
         await channel.send(embed=dm_embed)
-    embed.description = display
-    return embed
+    return display
 
 
 def validate_input(args, inputs) -> tuple[str, discord.Embed]:

@@ -1,5 +1,7 @@
 #!/Users/benjamin/.pyenv/shims/python
+import asyncio
 import traceback
+from threading import Thread
 
 from discord.ext.commands import has_permissions
 
@@ -17,6 +19,10 @@ async def on_ready():
     print("online")
     await client.change_presence(activity=discord.Activity(
         type=discord.ActivityType.playing, name=".help"))
+
+    thread = Thread(target=_menu.between_callback, args=(asyncio.get_event_loop(),))
+    thread.start()
+
     _menu.generate_menu(False)
 
 
