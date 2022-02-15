@@ -1,5 +1,6 @@
 __pycache__
 .token.txt
+.webhook.txt
 cache
 nohup.out
 calendar.pdf

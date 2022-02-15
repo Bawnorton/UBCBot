@@ -50,9 +50,9 @@ def between_callback(loop):
 
 async def send_daily_menu():
     async with aiohttp.ClientSession() as session:
-        webhook = Webhook.from_url(
-            "https://discord.com/api/webhooks/943247975029801060/fVmsptEJNGy-1gRNVesANZ58O_sf9yCZIetlCk9lwRgvPcHo-HyY2frHIhZ5edxSRDl2",
-            session=session)
+        with open(".webhook.txt", "r") as f:
+            content = f.readlines()
+        webhook = Webhook.from_url(content[0], session=session)
         embed = await _reference.get_message(None, None)
         await webhook.send(embed=embed, username="UBCO 2025 Webhook",
                            avatar_url="https://cdn.discordapp.com/avatars/897829450857726003/c58e8db16963e74566943d817dd79e9a.webp?size=160")
