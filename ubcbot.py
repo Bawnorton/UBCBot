@@ -60,15 +60,15 @@ async def menu(ctx, args=None):
         return
     selected_input = value[0]
     embed = await _reference.get_message(ctx, selected_input)
-    if selected_input is None:
-        _config.inaccurate_button_view = discord.ui.View(timeout=None)
-        _config.config_button = discord.ui.Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
-        _config.config_button.callback = _config.config_button_callback
-        _config.inaccurate_button_view.add_item(_config.config_button)
-        _config.menu_message_channel = ctx.channel
-        _config.menu_message = await ctx.send(embed=embed, view=_config.inaccurate_button_view)
-    else:
-        await ctx.send(embed=embed)
+    # if selected_input is None:
+    #     _config.inaccurate_button_view = discord.ui.View(timeout=None)
+    #     _config.config_button = discord.ui.Button(label="Inaccurate?", style=discord.ButtonStyle.blurple, emoji="🔧")
+    #     _config.config_button.callback = _config.config_button_callback
+    #     _config.inaccurate_button_view.add_item(_config.config_button)
+    #     _config.menu_message_channel = ctx.channel
+    #     _config.menu_message = await ctx.send(embed=embed, view=_config.inaccurate_button_view)
+    # else:
+    await ctx.send(embed=embed)
 # <!-- menu --!>
 
 
