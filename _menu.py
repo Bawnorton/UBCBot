@@ -190,13 +190,13 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
                     "Saturday", "\n- ".join(["Not Open on Saturday"]),
                     "Sunday", "\n- ".join(["Not Open on Sunday"]))
     elif choice == 7:
-        display.add_field(name=INPUTS["chefbr"], value="-" + "\n- ".join(menu['0'][str(today.weekday())]))
-        display.add_field(name=INPUTS["chef"], value="-" + "\n- ".join(menu['1'][str(today.weekday())]))
-        display.add_field(name=INPUTS["pizza"], value="-" + "\n- ".join(menu['2'][str(today.weekday())]))
-        display.add_field(name=INPUTS["pasta"], value="-" + "\n- ".join(menu['3'][str(today.weekday())]))
-        display.add_field(name=INPUTS["grillbr"], value="-" + "\n- ".join(menu['4'][str(today.weekday())]))
-        display.add_field(name=INPUTS["grill"], value="-" + "\n- ".join(menu['5'][str(today.weekday())]))
-        display.add_field(name=INPUTS["nourish"], value="-" + "\n- ".join(menu['6'][str(today.weekday())]
+        display.add_field(name=INPUTS["chefbr"], value="- " + "\n- ".join(menu['0'][str(today.weekday())]))
+        display.add_field(name=INPUTS["chef"], value="- " + "\n- ".join(menu['1'][str(today.weekday())]))
+        display.add_field(name=INPUTS["pizza"], value="- " + "\n- ".join(menu['2'][str(today.weekday())]))
+        display.add_field(name=INPUTS["pasta"], value="- " + "\n- ".join(menu['3'][str(today.weekday())]))
+        display.add_field(name=INPUTS["grillbr"], value="- " + "\n- ".join(menu['4'][str(today.weekday())]))
+        display.add_field(name=INPUTS["grill"], value="- " + "\n- ".join(menu['5'][str(today.weekday())]))
+        display.add_field(name=INPUTS["nourish"], value="- " + "\n- ".join(menu['6'][str(today.weekday())]
                                                                           if today.weekday() < 5 else ["Not Open Today"]))
     elif choice == 8:
         display.description = "Full Menu sent in direct messages"

@@ -1,5 +1,6 @@
 #!/Users/benjamin/.pyenv/shims/python
 import asyncio
+import re
 import traceback
 from threading import Thread
 
@@ -96,7 +97,8 @@ async def calendar(ctx, args=None):
 # <!-- locknickname --!>
 @client.command()
 @has_permissions(manage_nicknames=True)
-async def locknickname(ctx, mention, name):
+async def locknickname(ctx, mention, *name):
+    name = " ".join(name)
     if mention is None or "<@" not in mention:
         await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A user mention is required"))
         return
@@ -106,7 +108,7 @@ async def locknickname(ctx, mention, name):
     if name is None:
         await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A nickname is required"))
         return
-    user_id = int(mention[3:-1])
+    user_id = int(re.findall(r'\d+', mention)[0])
     guild: discord.Guild = client.get_guild(ctx.guild.id)
     user: discord.Member = guild.get_member(user_id)
     try:
@@ -124,10 +126,10 @@ async def locknickname(ctx, mention, name):
 @client.command()
 @has_permissions(manage_nicknames=True)
 async def unlocknickname(ctx, mention):
-    if mention is None or "<@!" not in mention:
-        await ctx.send(embed=discord.Embed(title="Lock Nickname Error"), description="A user mention is required")
+    if mention is None or "<@" not in mention:
+        await ctx.send(embed=discord.Embed(title="Lock Nickname Error", description="A user mention is required"))
         return
-    user_id = mention[3:-1]
+    user_id = re.findall(r'\d+', mention)[0]
     locked_names = _reference.get_file("locked_names")
     locked_names.pop(user_id, None)
     _reference.save_file("locked_names", locked_names)
