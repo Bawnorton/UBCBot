@@ -6,6 +6,7 @@ import textract
 import requests
 import re as regex
 
+import _menu
 import _reference
 
 INPUTS = {
@@ -46,7 +47,7 @@ def get_calendar(ctx, section) -> discord.Embed:
             ok_calendar[lines[i][15:]] = get_session(i, lines)
         elif "winter session" in line.lower():
             ok_calendar[lines[i][15:]] = get_session(i, lines, summer=False)
-    today = datetime.date.today()
+    today = datetime.datetime.today().astimezone(_menu.est)
     year = today.year
     next_year = (today + datetime.timedelta(days=365)).year
     month_current = today.strftime("%B")

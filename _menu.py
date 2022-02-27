@@ -2,6 +2,7 @@ import asyncio
 import datetime
 
 import discord
+import pytz
 from bidict import bidict
 from discord import Webhook
 import aiohttp
@@ -30,14 +31,16 @@ positions: bidict[str, int] = bidict({
     "Nourish (1130am-3pm)": 6
 })
 
-last_day = datetime.datetime.today()
-current_day = datetime.datetime.today()
+est = pytz.timezone('US/Eastern')
+
+last_day = datetime.datetime.today().astimezone(est)
+current_day = datetime.datetime.today().astimezone(est)
 
 
 async def day_check():
     global last_day, current_day
     while True:
-        current_day = datetime.datetime.today()
+        current_day = datetime.datetime.today().astimezone(est)
         if current_day.day != last_day.day:
             last_day = current_day
             await send_daily_menu()
@@ -109,7 +112,7 @@ def generate_menu(do: bool):
 def generate_menu_json():
     menu_json = _reference.get_file("menu")
 
-    today = datetime.datetime.today()
+    today = datetime.datetime.today().astimezone(est)
     monday = today - datetime.timedelta(days=today.weekday())
     sunday = monday + datetime.timedelta(days=6)
 
@@ -156,7 +159,7 @@ def generate_menu_json():
 
 
 def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
-    today = datetime.date.today()
+    today = datetime.datetime.today().astimezone(est)
     choices = {
         "chefbr": 0,
         "chef": 1,
