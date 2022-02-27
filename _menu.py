@@ -175,23 +175,20 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
     display, dm_embed = discord.Embed(title=INPUTS[selected_input],
                                       color=discord.colour.Colour.blue()), None
     if choice <= 5:
-        display.description = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday", "\n- ".join(menu[str(choice)]['0']),
-                    "Tuesday", "\n- ".join(menu[str(choice)]['1']),
-                    "Wednesday", "\n- ".join(menu[str(choice)]['2']),
-                    "Thursday", "\n- ".join(menu[str(choice)]['3']),
-                    "Friday", "\n- ".join(menu[str(choice)]['4']),
-                    "Saturday", "\n- ".join(menu[str(choice)]['5']),
-                    "Sunday", "\n- ".join(menu[str(choice)]['6']))
+        display.add_field(name="Monday", value="\n- ".join(menu[str(choice)]['0']), inline=True)
+        display.add_field(name="Tuesday", value="\n- ".join(menu[str(choice)]['1']), inline=True)
+        display.add_field(name="Wednesday", value="\n- ".join(menu[str(choice)]['2']), inline=True)
+        display.add_field(name="Thursday", value="\n- ".join(menu[str(choice)]['3']), inline=True)
+        display.add_field(name="Friday", value="\n- ".join(menu[str(choice)]['4']), inline=True)
+        display.add_field(name="Saturday", value="\n- ".join(menu[str(choice)]['5']), inline=True)
+        display.add_field(name="Sunday", value="\n- ".join(menu[str(choice)]['6']), inline=True)
     elif choice == 6:
-        display.description = "**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}\n**{}**\n- {}" \
-            .format("Monday", "\n- ".join(menu['6']['0']),
-                    "Tuesday", "\n- ".join(menu['6']['1']),
-                    "Wednesday", "\n- ".join(menu['6']['2']),
-                    "Thursday", "\n- ".join(menu['6']['3']),
-                    "Friday", "\n- ".join(menu['6']['4']),
-                    "Saturday", "\n- ".join(["Not Open on Saturday"]),
-                    "Sunday", "\n- ".join(["Not Open on Sunday"]))
+        display.add_field(name="Monday", value="\n- ".join(menu[str(choice)]['0']), inline=True)
+        display.add_field(name="Tuesday", value="\n- ".join(menu[str(choice)]['1']), inline=True)
+        display.add_field(name="Wednesday", value="\n- ".join(menu[str(choice)]['2']), inline=True)
+        display.add_field(name="Thursday", value="\n- ".join(menu[str(choice)]['3']), inline=True)
+        display.add_field(name="Friday", value="\n- ".join(menu[str(choice)]['4']), inline=True)
+        display.add_field(name="Weekends", value="Not Open on Weekends", inline=True)
     elif choice == 7:
         display.add_field(name=INPUTS["chefbr"], value="- " + "\n- ".join(menu['0'][str(today.weekday())]))
         display.add_field(name=INPUTS["chef"], value="- " + "\n- ".join(menu['1'][str(today.weekday())]))
