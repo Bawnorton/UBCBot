@@ -31,16 +31,20 @@ positions: bidict[str, int] = bidict({
     "Nourish (1130am-3pm)": 6
 })
 
-est = pytz.timezone('US/Eastern')
 
-last_day = datetime.datetime.today().astimezone(est)
-current_day = datetime.datetime.today().astimezone(est)
+def get_today():
+    pst = pytz.timezone('US/Pacific')
+    return datetime.datetime.now(tz=pst)
+
+
+last_day = get_today()
+current_day = get_today()
 
 
 async def day_check():
     global last_day, current_day
     while True:
-        current_day = datetime.datetime.today().astimezone(est)
+        current_day = get_today()
         if current_day.day != last_day.day:
             last_day = current_day
             await send_daily_menu()
@@ -112,7 +116,7 @@ def generate_menu(do: bool):
 def generate_menu_json():
     menu_json = _reference.get_file("menu")
 
-    today = datetime.datetime.today().astimezone(est)
+    today = get_today()
     monday = today - datetime.timedelta(days=today.weekday())
     sunday = monday + datetime.timedelta(days=6)
 
@@ -159,7 +163,7 @@ def generate_menu_json():
 
 
 def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
-    today = datetime.datetime.today().astimezone(est)
+    today = get_today()
     choices = {
         "chefbr": 0,
         "chef": 1,
@@ -175,19 +179,19 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
     display, dm_embed = discord.Embed(title=INPUTS[selected_input],
                                       color=discord.colour.Colour.blue()), None
     if choice <= 5:
-        display.add_field(name="Monday", value="\n- ".join(menu[str(choice)]['0']), inline=True)
-        display.add_field(name="Tuesday", value="\n- ".join(menu[str(choice)]['1']), inline=True)
-        display.add_field(name="Wednesday", value="\n- ".join(menu[str(choice)]['2']), inline=True)
-        display.add_field(name="Thursday", value="\n- ".join(menu[str(choice)]['3']), inline=True)
-        display.add_field(name="Friday", value="\n- ".join(menu[str(choice)]['4']), inline=True)
-        display.add_field(name="Saturday", value="\n- ".join(menu[str(choice)]['5']), inline=True)
-        display.add_field(name="Sunday", value="\n- ".join(menu[str(choice)]['6']), inline=True)
+        display.add_field(name="Monday", value="- " + "\n- ".join(menu[str(choice)]['0']), inline=True)
+        display.add_field(name="Tuesday", value="- " + "\n- ".join(menu[str(choice)]['1']), inline=True)
+        display.add_field(name="Wednesday", value="- " + "\n- ".join(menu[str(choice)]['2']), inline=True)
+        display.add_field(name="Thursday", value="- " + "\n- ".join(menu[str(choice)]['3']), inline=True)
+        display.add_field(name="Friday", value="- " + "\n- ".join(menu[str(choice)]['4']), inline=True)
+        display.add_field(name="Saturday", value="- " + "\n- ".join(menu[str(choice)]['5']), inline=True)
+        display.add_field(name="Sunday", value="- " + "\n- ".join(menu[str(choice)]['6']), inline=True)
     elif choice == 6:
-        display.add_field(name="Monday", value="\n- ".join(menu[str(choice)]['0']), inline=True)
-        display.add_field(name="Tuesday", value="\n- ".join(menu[str(choice)]['1']), inline=True)
-        display.add_field(name="Wednesday", value="\n- ".join(menu[str(choice)]['2']), inline=True)
-        display.add_field(name="Thursday", value="\n- ".join(menu[str(choice)]['3']), inline=True)
-        display.add_field(name="Friday", value="\n- ".join(menu[str(choice)]['4']), inline=True)
+        display.add_field(name="Monday", value="- " + "\n- ".join(menu[str(choice)]['0']), inline=True)
+        display.add_field(name="Tuesday", value="- " + "\n- ".join(menu[str(choice)]['1']), inline=True)
+        display.add_field(name="Wednesday", value="- " + "\n- ".join(menu[str(choice)]['2']), inline=True)
+        display.add_field(name="Thursday", value="- " + "\n- ".join(menu[str(choice)]['3']), inline=True)
+        display.add_field(name="Friday", value="- " + "\n- ".join(menu[str(choice)]['4']), inline=True)
         display.add_field(name="Weekends", value="Not Open on Weekends", inline=True)
     elif choice == 7:
         display.add_field(name=INPUTS["chefbr"], value="- " + "\n- ".join(menu['0'][str(today.weekday())]))
@@ -197,7 +201,7 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
         display.add_field(name=INPUTS["grillbr"], value="- " + "\n- ".join(menu['4'][str(today.weekday())]))
         display.add_field(name=INPUTS["grill"], value="- " + "\n- ".join(menu['5'][str(today.weekday())]))
         display.add_field(name=INPUTS["nourish"], value="- " + "\n- ".join(menu['6'][str(today.weekday())]
-                                                                          if today.weekday() < 5 else ["Not Open Today"]))
+                                                                           if today.weekday() < 5 else ["Not Open Today"]))
     elif choice == 8:
         display.description = "Full Menu sent in direct messages"
         dm_embed = discord.Embed(title=INPUTS[selected_input],
