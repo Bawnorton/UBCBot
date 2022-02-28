@@ -179,7 +179,6 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
     choice = choices[selected_input]
     display, dm_embed = discord.Embed(title=INPUTS[selected_input],
                                       color=discord.colour.Colour.blue()), None
-    print(menu)
     if choice <= 5:
         display.add_field(name="Monday", value="- " + "\n- ".join(menu[str(choice)]['0']), inline=True)
         display.add_field(name="Tuesday", value="- " + "\n- ".join(menu[str(choice)]['1']), inline=True)
