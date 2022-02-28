@@ -141,7 +141,7 @@ def generate_menu_json():
     else:
         next_month = False
         stored_offset = 0
-        for day_offset in range(0, 6):
+        for day_offset in range(0, 7):
             day = monday.day + day_offset
             if next_month:
                 day = sunday.day + day_offset - stored_offset
@@ -179,6 +179,7 @@ def get_display(menu, selected_input) -> tuple[discord.Embed, discord.Embed]:
     choice = choices[selected_input]
     display, dm_embed = discord.Embed(title=INPUTS[selected_input],
                                       color=discord.colour.Colour.blue()), None
+    print(menu)
     if choice <= 5:
         display.add_field(name="Monday", value="- " + "\n- ".join(menu[str(choice)]['0']), inline=True)
         display.add_field(name="Tuesday", value="- " + "\n- ".join(menu[str(choice)]['1']), inline=True)
