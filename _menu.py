@@ -143,10 +143,11 @@ def generate_menu_json():
         stored_offset = 0
         for day_offset in range(0, 6):
             day = monday.day + day_offset
-            day_json = current_month_json[str(day)]
             if next_month:
                 day = sunday.day + day_offset - stored_offset
                 day_json = next_month_json[str(day)]
+            else:
+                day_json = current_month_json[str(day)]
             day = day_offset
             for stand in day_json.keys():
                 if str(positions[stand]) not in json_content.keys():
