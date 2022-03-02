@@ -92,7 +92,7 @@ def generate_menu(do: bool):
     with open("menu.txt", 'r') as menu_txt:
         menu_json = _reference.get_file("menu")
         lines = menu_txt.readlines()
-        month_num = "2"
+        month_num = "3"
         if month_num not in menu_json.keys():
             menu_json[month_num] = {}
         current_day = "0"
@@ -140,14 +140,15 @@ def generate_menu_json():
                     json_content[str(positions[stand])][str(day)].append(dish.lower().capitalize())
     else:
         next_month = False
-        stored_offset = 0
+        stored_offset = 6
         for day_offset in range(0, 7):
             day = monday.day + day_offset
             if next_month:
-                day = sunday.day + day_offset - stored_offset
+                day = sunday.day - stored_offset
                 day_json = next_month_json[str(day)]
             else:
                 day_json = current_month_json[str(day)]
+            print(day)
             day = day_offset
             for stand in day_json.keys():
                 if str(positions[stand]) not in json_content.keys():
@@ -158,8 +159,7 @@ def generate_menu_json():
                     json_content[str(positions[stand])][str(day)].append(dish.lower().capitalize())
             if not next_month:
                 next_month = end_of_month(monday + datetime.timedelta(days=day_offset))
-                if next_month:
-                    stored_offset = day_offset
+            stored_offset -= 1
     return json_content
 
 
