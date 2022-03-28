@@ -86,30 +86,29 @@ def end_of_month(dt):
     return True if tomorrows_month != todays_month else False
 
 
-def generate_menu(do: bool):
+def generate_menu(do: bool, month_num: str):
     if not do:
         return
     with open("menu.txt", 'r') as menu_txt:
         menu_json = _reference.get_file("menu")
         lines = menu_txt.readlines()
-        month_num = "3"
         if month_num not in menu_json.keys():
             menu_json[month_num] = {}
-        current_day = "0"
+        current_day_str = "0"
         current_stand = ""
         for line in lines:
             line = line.strip()
             if is_int(line):
-                current_day = line
-                if current_day not in menu_json[month_num].keys():
-                    menu_json[month_num][current_day] = {}
+                current_day_str = line
+                if current_day_str not in menu_json[month_num].keys():
+                    menu_json[month_num][current_day_str] = {}
                 continue
             if contains_lower(line):
                 current_stand = line
-                if current_stand not in menu_json[month_num][current_day].keys():
-                    menu_json[month_num][current_day][current_stand] = []
+                if current_stand not in menu_json[month_num][current_day_str].keys():
+                    menu_json[month_num][current_day_str][current_stand] = []
                 continue
-            menu_json[month_num][current_day][current_stand].append(line)
+            menu_json[month_num][current_day_str][current_stand].append(line)
         _reference.save_file("menu", menu_json)
 
 
@@ -148,7 +147,6 @@ def generate_menu_json():
                 day_json = next_month_json[str(day)]
             else:
                 day_json = current_month_json[str(day)]
-            print(day)
             day = day_offset
             for stand in day_json.keys():
                 if str(positions[stand]) not in json_content.keys():

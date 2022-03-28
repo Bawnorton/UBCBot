@@ -23,8 +23,8 @@ async def on_ready():
 
     thread = Thread(target=_menu.between_callback, args=(asyncio.get_event_loop(),))
     thread.start()
-
-    _menu.generate_menu(False)
+    # await _menu.send_daily_menu()
+    # _menu.generate_menu(True, "4")
 
 
 @client.event
